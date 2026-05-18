@@ -1,0 +1,44 @@
+{
+  "sku": "LEGACY-12345-XYZ",
+  "product_name": "Dell XPS 15 Laptop",
+  "long_description": "15.6-inch premium laptop with Intel Core i7, 16GB RAM, 512GB SSD. Perfect for professionals.",
+  "short_description": "Premium 15\" laptop",
+  "category_breadcrumb": "Electronics / Computers / Laptops / Business",
+  "brand_name": "Dell",
+  "manufacturer": "Dell Inc.",
+  "pricing": {
+    "current_price": 1599.00,
+    "list_price": 1899.00,
+    "currency": "USD",
+    "wholesale_cost": 1200.00,
+    "discount_percent": 15.8
+  },
+  "stock_status": "available",
+  "inventory_count": 75,
+  "product_url": "https://legacy-store.com/dell-xps-15",
+  "image_gallery": [
+    "https://legacy-cdn.com/dell-xps-front.png",
+    "https://legacy-cdn.com/dell-xps-open.png",
+    "https://legacy-cdn.com/dell-xps-ports.png"
+  ],
+  "main_image": "https://legacy-cdn.com/dell-xps-hero.png",
+  "available_sizes": null,
+  "color": "Platinum Silver",
+  "color_family": "Silver",
+  "product_materials": "Carbon Fiber, Aluminum",
+  "keywords": "business laptop, ultrabook, xps, dell, professional",
+  "customer_reviews": {
+    "total_reviews": 892,
+    "avg_rating": 4.5,
+    "five_star_count": 620
+  },
+  "locale": "en_US",
+  "valid_until": "2025-06-30T23:59:59Z",
+  "created_at": "2024-01-15T10:30:00Z",
+  "last_modified": "2024-03-10T15:45:00Z",
+  "is_active": true,
+  "legacy_fields": {
+    "old_sku": "DELLXPS15-2024",
+    "warehouse_code": "WH-AUSTIN-01"
+  }
+}

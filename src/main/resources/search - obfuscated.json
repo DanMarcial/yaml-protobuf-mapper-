@@ -1,0 +1,19 @@
+[
+  {
+    "visitorId": "VISITOR_TEST_001",
+    "sessionId": "SESSION_TEST_001",
+    "eventTime": "2025-01-15T10:30:00.000-0300",
+    "attributionToken": "ATTRIBUTION_TOKEN_001",
+    "experimentsIds": "[{\"key\":\"exp-search-ranking\",\"value\":\"variant-a\"},{\"key\":\"exp-filters-ui\",\"value\":\"variant-b\"},{\"key\":\"exp-personalization\",\"value\":\"enabled\"},{\"key\":\"exp-sorting\",\"value\":\"relevance\"}]",
+    "uri": "/search",
+    "userId": "USER_001",
+    "userAgent": "TestAgent/1.0",
+    "searchQuery": "test search query",
+    "category": "TEST_CATEGORY_001",
+    "productsIds": "[\"PROD001\",\"PROD002\",\"PROD003\",\"PROD004\"]",
+    "orderBy": "price_asc",
+    "offset": 10,
+    "http_referer": "https://www.mercadolibre.cl/",
+    "httpUrl": "https://www.mercadolibre.cl/search"
+  }
+]

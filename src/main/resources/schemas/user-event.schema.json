@@ -1,0 +1,253 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "user-event.schema.json",
+  "title": "UserEvent",
+  "type": "object",
+  "$comment": "Schema de UserEvent para Vertex AI Search for Commerce. Incluye validaciones condicionales por eventType.",
+
+  "required": ["eventType", "visitorId"],
+
+  "properties": {
+
+    "eventType": {
+      "type": "string",
+      "enum": [
+        "add-to-cart",
+        "remove-from-cart",
+        "category-page-view",
+        "detail-page-view",
+        "home-page-view",
+        "purchase-complete",
+        "search",
+        "shopping-cart-page-view"
+      ]
+    },
+
+    "visitorId": {
+      "type": "string",
+      "maxLength": 128
+    },
+
+    "sessionId": {
+      "type": "string",
+      "maxLength": 128
+    },
+
+    "eventTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+
+    "experimentIds": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+
+    "attributionToken": {
+      "type": "string"
+    },
+
+    "productDetails": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ProductDetail" }
+    },
+
+    "completionDetail": {
+      "$ref": "#/$defs/CompletionDetail"
+    },
+
+    "attributes": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "common.schema.json#/$defs/CustomAttribute"
+      }
+    },
+
+    "cartId": {
+      "type": "string"
+    },
+
+    "purchaseTransaction": {
+      "$ref": "#/$defs/PurchaseTransaction"
+    },
+
+    "searchQuery": {
+      "type": "string",
+      "maxLength": 5000
+    },
+
+    "filter": {
+      "type": "string",
+      "maxLength": 1000
+    },
+
+    "orderBy": {
+      "type": "string",
+      "maxLength": 1000
+    },
+
+    "offset": {
+      "type": "integer",
+      "minimum": 0
+    },
+
+    "pageCategories": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+
+    "userInfo": {
+      "$ref": "#/$defs/UserInfo"
+    },
+
+    "uri": {
+      "type": "string",
+      "maxLength": 5000
+    },
+
+    "referrerUri": {
+      "type": "string",
+      "maxLength": 5000
+    },
+
+    "pageViewId": {
+      "type": "string"
+    },
+
+    "entity": {
+      "type": "string"
+    },
+
+    "panels": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/PanelInfo" }
+    }
+  },
+
+  "allOf": [
+    {
+      "$comment": "SEARCH: requiere searchQuery o pageCategories",
+      "if": {
+        "properties": { "eventType": { "const": "search" } },
+        "required": ["eventType"]
+      },
+      "then": {
+        "anyOf": [
+          { "required": ["searchQuery"] },
+          { "required": ["pageCategories"] }
+        ]
+      }
+    },
+    {
+      "$comment": "ADD TO CART: requiere productDetails",
+      "if": {
+        "properties": { "eventType": { "const": "add-to-cart" } },
+        "required": ["eventType"]
+      },
+      "then": { "required": ["productDetails"] }
+    },
+    {
+      "$comment": "REMOVE FROM CART: requiere productDetails",
+      "if": {
+        "properties": { "eventType": { "const": "remove-from-cart" } },
+        "required": ["eventType"]
+      },
+      "then": { "required": ["productDetails"] }
+    },
+    {
+      "$comment": "DETAIL PAGE VIEW: requiere productDetails",
+      "if": {
+        "properties": { "eventType": { "const": "detail-page-view" } },
+        "required": ["eventType"]
+      },
+      "then": { "required": ["productDetails"] }
+    },
+    {
+      "$comment": "PURCHASE COMPLETE: requiere productDetails y purchaseTransaction",
+      "if": {
+        "properties": { "eventType": { "const": "purchase-complete" } },
+        "required": ["eventType"]
+      },
+      "then": {
+        "required": ["productDetails", "purchaseTransaction"]
+      }
+    },
+    {
+      "$comment": "CATEGORY PAGE VIEW: requiere pageCategories",
+      "if": {
+        "properties": { "eventType": { "const": "category-page-view" } },
+        "required": ["eventType"]
+      },
+      "then": { "required": ["pageCategories"] }
+    }
+  ],
+
+  "$defs": {
+
+    "ProductDetail": {
+      "type": "object",
+      "$comment": "Representa un producto involucrado en el evento.",
+      "required": ["product"],
+      "properties": {
+        "product": {
+          "$ref": "product.schema.json"
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+
+    "CompletionDetail": {
+      "type": "object",
+      "$comment": "Información de autocomplete en eventos de búsqueda.",
+      "properties": {
+        "completion": { "type": "string" },
+        "selectedPosition": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+
+    "PurchaseTransaction": {
+      "type": "object",
+      "$comment": "Información de transacción para purchase-complete.",
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string" },
+        "revenue": { "type": "number" },
+        "taxes": { "type": "number" },
+        "cost": { "type": "number" },
+        "currencyCode": { "type": "string" }
+      }
+    },
+
+    "UserInfo": {
+      "type": "object",
+      "$comment": "Información del usuario final.",
+      "properties": {
+        "userId": { "type": "string" },
+        "ipAddress": { "type": "string" },
+        "userAgent": { "type": "string" },
+        "directUserRequest": { "type": "boolean" }
+      }
+    },
+
+    "PanelInfo": {
+      "type": "object",
+      "$comment": "Información de paneles de recomendación.",
+      "properties": {
+        "panelId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "panelPosition": { "type": "integer" },
+        "productDetails": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ProductDetail" }
+        }
+      }
+    }
+
+  }
+}

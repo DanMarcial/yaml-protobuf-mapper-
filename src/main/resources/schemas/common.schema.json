@@ -1,0 +1,234 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "common.schema.json",
+  "title": "Common Types",
+  "$comment": "Tipos compartidos entre Product y UserEvent para Vertex AI Search for Commerce.",
+
+  "$defs": {
+
+    "CustomAttribute": {
+      "type": "object",
+      "$comment": "Atributos personalizados dinámicos.",
+      "properties": {
+        "text": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "numbers": {
+          "type": "array",
+          "items": { "type": "number" }
+        },
+        "searchable": { "type": "boolean" },
+        "indexable": { "type": "boolean" }
+      }
+    },
+
+    "Image": {
+      "type": "object",
+      "$comment": "Representa una imagen del producto.",
+      "properties": {
+        "uri": { "type": "string" },
+        "height": { "type": "integer" },
+        "width": { "type": "integer" }
+      }
+    },
+
+    "PriceInfo": {
+      "type": "object",
+      "$comment": "Información de precios del producto.",
+      "properties": {
+        "currencyCode": { "type": "string" },
+        "price": { "type": "number" },
+        "originalPrice": { "type": "number" },
+        "cost": { "type": "number" },
+        "priceEffectiveTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "priceExpireTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "priceRange": {
+          "type": "object",
+          "properties": {
+            "price": {
+              "$ref": "#/$defs/Interval"
+            },
+            "originalPrice": {
+              "$ref": "#/$defs/Interval"
+            }
+          }
+        }
+      }
+    },
+
+    "Rating": {
+      "type": "object",
+      "$comment": "Información de calificaciones del producto.",
+      "properties": {
+        "ratingCount": { "type": "integer", "minimum": 0},
+        "averageRating": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "ratingHistogram": {
+          "type": "array",
+          "$comment": "Siempre contiene EXACTAMENTE 5 posiciones representando cantidad de ratings 1★, 2★, 3★, 4★ y 5★ respectivamente.",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+
+    "FulfillmentInfo": {
+      "type": "object",
+      "$comment": "Información de opciones de fulfillment.",
+      "properties": {
+        "type": { "type": "string" },
+        "placeIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "Audience": {
+      "type": "object",
+      "$comment": "Audiencia objetivo del producto.",
+      "properties": {
+        "genders": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "ageGroups": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "ColorInfo": {
+      "type": "object",
+      "$comment": "Información de colores del producto.",
+      "properties": {
+        "colorFamilies": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "colors": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "Promotion": {
+      "type": "object",
+      "$comment": "Promoción aplicable al producto.",
+      "properties": {
+        "promotionId": { "type": "string" }
+      }
+    },
+
+    "LocalInventory": {
+      "type": "object",
+      "$comment": "Inventario local del producto.",
+      "properties": {
+        "placeId": { "type": "string" },
+        "priceInfo": { "$ref": "#/$defs/PriceInfo" },
+        "attributes": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/CustomAttribute" }
+        },
+        "fulfillmentTypes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "pickup-in-store",
+              "ship-to-home",
+              "same-day-delivery",
+              "next-day-delivery",
+              "custom-type-1",
+              "custom-type-2",
+              "custom-type-3",
+              "custom-type-4",
+              "custom-type-5"
+            ]
+          }
+        }
+      }
+    },
+
+    "Interval": {
+      "type": "object",
+      "properties": {
+        "minimum": {
+          "type": "number"
+        },
+        "exclusiveMinimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        },
+        "exclusiveMaximum": {
+          "type": "number"
+        }
+      },
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "required": ["minimum"],
+              "not": {
+                "required": ["exclusiveMinimum"]
+              }
+            },
+            {
+              "required": ["exclusiveMinimum"],
+              "not": {
+                "required": ["minimum"]
+              }
+            },
+            {
+              "not": {
+                "anyOf": [
+                  { "required": ["minimum"] },
+                  { "required": ["exclusiveMinimum"] }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "oneOf": [
+            {
+              "required": ["maximum"],
+              "not": {
+                "required": ["exclusiveMaximum"]
+              }
+            },
+            {
+              "required": ["exclusiveMaximum"],
+              "not": {
+                "required": ["maximum"]
+              }
+            },
+            {
+              "not": {
+                "anyOf": [
+                  { "required": ["maximum"] },
+                  { "required": ["exclusiveMaximum"] }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

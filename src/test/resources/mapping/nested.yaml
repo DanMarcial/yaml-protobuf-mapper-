@@ -1,0 +1,35 @@
+rootType: UserEvent
+
+fields:
+  userInfo:
+    type: object
+    objectType: UserInfo
+    source: [userInfo, user_info]
+    fields:
+      userId:
+        type: string
+        source: [userId, user_id]
+      userAgent:
+        type: string
+        source: [userAgent, user_agent]
+
+  productDetails:
+    type: array
+    itemType: ProductDetail
+    source: [products, productDetails]
+    fields:
+      product:
+        type: object
+        objectType: Product
+        fields:
+          id:
+            type: string
+            source: [id, productId]
+            required: true
+          title:
+            type: string
+            source: [title, name]
+      quantity:
+        type: int32
+        source: [qty, quantity]
+        default: 1

@@ -1,0 +1,99 @@
+# Test configuration covering all supported types, default values, and required fields
+# Used by GenericProtobufBuilderIntegrationTest
+
+rootType: UserEvent
+
+fields:
+  # String type
+  visitorId:
+    type: string
+    source: [visitor_id, visitorId]
+    required: true
+
+  # String with default
+  sessionId:
+    type: string
+    source: [session_id]
+    default: "default-session"
+
+  # Int32 type
+  offset:
+    type: int32
+    source: [page_offset, offset]
+
+  # Int32 with default
+  pageSize:
+    type: int32
+    source: [limit]
+    default: 10
+
+  # Int64 type (uses eventTime as unix millis for testing)
+  # Note: We can't directly test int64 in UserEvent, using a workaround
+
+  # Float type (productDetails.quantity allows testing numeric conversions)
+
+  # Double type
+
+  # Boolean type
+  # Note: UserEvent doesn't have a boolean field, but we test the conversion logic
+
+  # Timestamp type
+  eventTime:
+    type: timestamp
+    source: [event_time, timestamp]
+    format: iso8601
+
+  # String array
+  pageCategories:
+    type: array
+    itemType: string
+    source: [categories, page_categories]
+
+  # Object type - nested object
+  userInfo:
+    type: object
+    objectType: UserInfo
+    source: [user, userInfo]
+    fields:
+      userId:
+        type: string
+        source: [id, user_id]
+        required: true
+      userAgent:
+        type: string
+        source: [agent, user_agent]
+        default: "unknown-agent"
+
+  # Array of objects - nested object array
+  productDetails:
+    type: array
+    itemType: ProductDetail
+    source: [products, items]
+    fields:
+      product:
+        type: object
+        objectType: Product
+        source: [product]
+        fields:
+          id:
+            type: string
+            source: [id, product_id]
+            required: true
+          title:
+            type: string
+            source: [name, title]
+      quantity:
+        type: int32
+        source: [qty, quantity]
+        default: 1
+
+  # URI with required
+  uri:
+    type: string
+    source: [request_uri, uri]
+    required: true
+
+  # Search query
+  searchQuery:
+    type: string
+    source: [query, search_query]

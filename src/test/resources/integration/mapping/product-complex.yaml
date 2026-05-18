@@ -1,0 +1,156 @@
+# Mapeo complejo para Product con estructura legacy/caótica
+# Demuestra: fallbacks, transforms, defaults, mapeo de nombres diferentes
+
+rootType: Product
+
+fields:
+  id:
+    type: string
+    source: [sku, product_id, id]
+    required: true
+
+  title:
+    type: string
+    source: [product_name, name, title]
+
+  description:
+    type: string
+    source: [long_description, description, short_description]
+
+  # Transform: string breadcrumb a array
+  categories:
+    type: array
+    itemType: string
+    source: [category_breadcrumb, categories]
+    transform: splitToArray
+    transformParams:
+      delimiter: " / "
+
+  # Transform: campo único a array
+  brands:
+    type: array
+    itemType: string
+    source: [brand_name, manufacturer, brands]
+    transform: singleItemToArray
+
+  priceInfo:
+    type: object
+    objectType: PriceInfo
+    source: [pricing, priceInfo]
+    fields:
+      price:
+        type: float
+        source: [current_price, sale_price, price]
+      originalPrice:
+        type: float
+        source: [list_price, msrp, originalPrice]
+      currencyCode:
+        type: string
+        source: [currency, currencyCode]
+        default: "USD"
+      cost:
+        type: float
+        source: [wholesale_cost, cost]
+
+  # Transform: mapeo de valores string a enum
+  availability:
+    type: enum
+    enumType: Product.Availability
+    source: [stock_status, availability]
+    transform: mapValue
+    transformParams:
+      mapping:
+        available: "IN_STOCK"
+        in_stock: "IN_STOCK"
+        out_of_stock: "OUT_OF_STOCK"
+        sold_out: "OUT_OF_STOCK"
+        preorder: "PREORDER"
+        backorder: "BACKORDER"
+      default: "IN_STOCK"
+
+  availableQuantity:
+    type: int32
+    source: [inventory_count, stock_quantity, availableQuantity]
+    default: 0
+
+  uri:
+    type: string
+    source: [product_url, page_url, uri]
+
+  # Transform: array de strings a array de objetos Image
+  images:
+    type: array
+    itemType: Image
+    source: [image_gallery, images]
+    transform: stringsToImages
+    fields:
+      uri:
+        type: string
+        source: [uri]
+
+  sizes:
+    type: array
+    itemType: string
+    source: [available_sizes, sizes]
+
+  colorInfo:
+    type: object
+    objectType: ColorInfo
+    source: [colorInfo, "."]
+    fields:
+      # Transform: string a array
+      colorFamilies:
+        type: array
+        itemType: string
+        source: [color_family, colorFamilies]
+        transform: singleItemToArray
+      colors:
+        type: array
+        itemType: string
+        source: [color, colors]
+        transform: singleItemToArray
+
+  # Transform: string CSV a array
+  materials:
+    type: array
+    itemType: string
+    source: [product_materials, materials]
+    transform: splitToArray
+    transformParams:
+      delimiter: ", "
+
+  # Transform: string de keywords a array de tags
+  tags:
+    type: array
+    itemType: string
+    source: [keywords, tags]
+    transform: splitToArray
+    transformParams:
+      delimiter: ", "
+
+  rating:
+    type: object
+    objectType: Rating
+    source: [customer_reviews, rating]
+    fields:
+      ratingCount:
+        type: int32
+        source: [total_reviews, ratingCount]
+      averageRating:
+        type: float
+        source: [avg_rating, averageRating]
+
+  # Transform: locale format (en_US) a languageCode (en-US)
+  languageCode:
+    type: string
+    source: [locale, languageCode]
+    transform: replaceChars
+    transformParams:
+      from: "_"
+      to: "-"
+
+  # Transform: fecha simple a timestamp completo
+  expireTime:
+    type: timestamp
+    source: [valid_until, expireTime]
+    format: iso8601

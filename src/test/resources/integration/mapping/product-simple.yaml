@@ -1,0 +1,124 @@
+# Mapeo simple para Product con estructura limpia
+# Campos JSON = campos Protobuf
+
+rootType: Product
+
+fields:
+  id:
+    type: string
+    source: [id]
+    required: true
+
+  title:
+    type: string
+    source: [title]
+
+  description:
+    type: string
+    source: [description]
+
+  categories:
+    type: array
+    itemType: string
+    source: [categories]
+
+  brands:
+    type: array
+    itemType: string
+    source: [brands]
+
+  priceInfo:
+    type: object
+    objectType: PriceInfo
+    source: [priceInfo]
+    fields:
+      price:
+        type: float
+        source: [price]
+      originalPrice:
+        type: float
+        source: [originalPrice]
+      currencyCode:
+        type: string
+        source: [currencyCode]
+      cost:
+        type: float
+        source: [cost]
+
+  availability:
+    type: enum
+    enumType: Product.Availability
+    source: [availability]
+
+  availableQuantity:
+    type: int32
+    source: [availableQuantity]
+
+  uri:
+    type: string
+    source: [uri]
+
+  images:
+    type: array
+    itemType: Image
+    source: [images]
+    fields:
+      uri:
+        type: string
+        source: [uri]
+      width:
+        type: int32
+        source: [width]
+      height:
+        type: int32
+        source: [height]
+
+  sizes:
+    type: array
+    itemType: string
+    source: [sizes]
+
+  colorInfo:
+    type: object
+    objectType: ColorInfo
+    source: [colorInfo]
+    fields:
+      colorFamilies:
+        type: array
+        itemType: string
+        source: [colorFamilies]
+      colors:
+        type: array
+        itemType: string
+        source: [colors]
+
+  materials:
+    type: array
+    itemType: string
+    source: [materials]
+
+  tags:
+    type: array
+    itemType: string
+    source: [tags]
+
+  rating:
+    type: object
+    objectType: Rating
+    source: [rating]
+    fields:
+      ratingCount:
+        type: int32
+        source: [ratingCount]
+      averageRating:
+        type: float
+        source: [averageRating]
+
+  languageCode:
+    type: string
+    source: [languageCode]
+
+  expireTime:
+    type: timestamp
+    source: [expireTime]
+    format: iso8601

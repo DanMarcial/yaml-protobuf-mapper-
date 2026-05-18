@@ -1,0 +1,30 @@
+rootType: UserEvent
+
+fields:
+  visitorId:
+    type: string
+    source: [visitorId, visitor_id]
+    required: true
+
+  experimentIds:
+    type: array
+    itemType: string
+    source: [ experimentsIds, experimentIds ]
+
+  productDetails:
+    type: array
+    itemType: ProductDetail
+    source: [productsIds, productIds, products, productDetails]
+    fields:
+      product:
+        type: object
+        objectType: Product
+        source: [product]
+        fields:
+          id:
+            type: string
+            source: [id]
+      quantity:
+        type: int32
+        source: [quantity]
+        default: 1

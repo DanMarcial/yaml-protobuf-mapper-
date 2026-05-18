@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "product.schema.json",
+  "title": "Product",
+  "type": "object",
+  "$comment": "Objeto completo Product del catálogo Retail para Vertex AI Search for Commerce.",
+
+  "required": ["id"],
+
+  "properties": {
+    "name": {
+      "type": "string",
+      "$comment": "Resource name completo del producto."
+    },
+    "id": {
+      "type": "string",
+      "maxLength": 128,
+      "$comment": "ID único e inmutable del producto."
+    },
+    "type": {
+      "type": "string",
+      "enum": ["PRIMARY", "VARIANT", "COLLECTION"],
+      "$comment": "Tipo de producto."
+    },
+    "primaryProductId": {
+      "type": "string",
+      "$comment": "ID del producto primario para variantes."
+    },
+    "collectionMemberIds": {
+      "type": "array",
+      "items": { "type": "string" },
+      "$comment": "IDs de productos miembros de colección."
+    },
+    "gtin": {
+      "type": "string",
+      "$comment": "Global Trade Item Number."
+    },
+    "categories": {
+      "type": "array",
+      "items": { "type": "string" },
+      "$comment": "Categorías jerárquicas."
+    },
+    "title": {
+      "type": "string",
+      "$comment": "Título del producto."
+    },
+    "brands": {
+      "type": "array",
+      "items": { "type": "string" },
+      "$comment": "Marcas asociadas."
+    },
+    "description": {
+      "type": "string",
+      "$comment": "Descripción textual."
+    },
+    "languageCode": {
+      "type": "string",
+      "$comment": "Código de idioma BCP-47."
+    },
+    "attributes": {
+      "type": "object",
+      "$comment": "Atributos personalizados dinámicos.",
+      "additionalProperties": {
+        "$ref": "common.schema.json#/$defs/CustomAttribute"
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "$comment": "Tags arbitrarios."
+    },
+    "priceInfo": {
+      "$ref": "common.schema.json#/$defs/PriceInfo"
+    },
+    "rating": {
+      "$ref": "common.schema.json#/$defs/Rating"
+    },
+    "availableTime": {
+      "type": "string",
+      "format": "date-time",
+      "$comment": "Fecha de disponibilidad."
+    },
+    "availability": {
+      "type": "string",
+      "enum": ["IN_STOCK", "OUT_OF_STOCK", "PREORDER", "BACKORDER"],
+      "$comment": "Estado de inventario."
+    },
+    "availableQuantity": {
+      "type": "integer",
+      "minimum": 0,
+      "$comment": "Cantidad disponible."
+    },
+    "fulfillmentInfo": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/FulfillmentInfo" },
+      "$comment": "Opciones de fulfillment."
+    },
+    "uri": {
+      "type": "string",
+      "$comment": "URL pública del producto."
+    },
+    "images": {
+      "type": "array",
+      "maxItems": 300,
+      "items": { "$ref": "common.schema.json#/$defs/Image" },
+      "$comment": "Imágenes asociadas."
+    },
+    "audience": {
+      "$ref": "common.schema.json#/$defs/Audience"
+    },
+    "colorInfo": {
+      "$ref": "common.schema.json#/$defs/ColorInfo"
+    },
+    "sizes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "$comment": "Tallas disponibles."
+    },
+    "materials": {
+      "type": "array",
+      "items": { "type": "string" },
+      "$comment": "Materiales del producto."
+    },
+    "patterns": {
+      "type": "array",
+      "items": { "type": "string" },
+      "$comment": "Patrones o diseños."
+    },
+    "conditions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "$comment": "Condiciones del producto."
+    },
+    "promotions": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/Promotion" },
+      "$comment": "Promociones aplicables."
+    },
+    "publishTime": {
+      "type": "string",
+      "format": "date-time",
+      "$comment": "Fecha de publicación."
+    },
+    "retrievableFields": {
+      "type": "string",
+      "$comment": "Campos retornables en búsquedas."
+    },
+    "variants": {
+      "type": "array",
+      "$comment": "Variantes del producto (estructura recursiva).",
+      "items": { "$ref": "#" }
+    },
+    "localInventories": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/LocalInventory" },
+      "$comment": "Inventarios locales."
+    },
+    "expireTime": {
+      "type": "string",
+      "format": "date-time",
+      "$comment": "Fecha exacta de expiración."
+    },
+    "ttl": {
+      "type": "string",
+      "$comment": "Duración hasta expiración."
+    }
+  },
+
+  "oneOf": [
+    { "required": ["expireTime"] },
+    { "required": ["ttl"] }
+  ]
+}

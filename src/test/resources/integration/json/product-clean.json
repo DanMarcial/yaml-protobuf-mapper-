@@ -1,0 +1,44 @@
+{
+  "id": "PROD-LAPTOP-RTX4080",
+  "title": "ASUS ROG Strix G18 Gaming Laptop",
+  "description": "18-inch gaming laptop with Intel Core i9, RTX 4080, 32GB RAM, 1TB SSD",
+  "categories": [
+    "Electronics > Computers > Laptops > Gaming Laptops",
+    "Gaming > PC Gaming > Gaming Laptops"
+  ],
+  "brands": ["ASUS", "ROG"],
+  "priceInfo": {
+    "price": 2499.99,
+    "originalPrice": 2999.99,
+    "currencyCode": "USD",
+    "cost": 1800.00
+  },
+  "availability": "IN_STOCK",
+  "availableQuantity": 150,
+  "uri": "https://store.example.com/products/asus-rog-strix-g18",
+  "images": [
+    {
+      "uri": "https://cdn.example.com/images/rog-strix-g18-front.jpg",
+      "width": 1200,
+      "height": 800
+    },
+    {
+      "uri": "https://cdn.example.com/images/rog-strix-g18-side.jpg",
+      "width": 1200,
+      "height": 800
+    }
+  ],
+  "sizes": ["18 inch"],
+  "colorInfo": {
+    "colorFamilies": ["Black"],
+    "colors": ["Eclipse Gray"]
+  },
+  "materials": ["Aluminum", "Plastic"],
+  "tags": ["gaming", "high-performance", "rtx4080", "intel-i9"],
+  "rating": {
+    "ratingCount": 245,
+    "averageRating": 4.7
+  },
+  "languageCode": "en-US",
+  "expireTime": "2025-12-31T23:59:59Z"
+}

@@ -1,0 +1,39 @@
+{
+  "event_type": "add-to-cart",
+  "user_visitor_id": "VIS_987654",
+  "session": "SESS-2024-03-15-ABC",
+  "timestamp": 1710510600000,
+  "tracking_token": "TRK-ABCDEF-123456",
+  "page_url": "https://legacy-store.com/product/gaming-laptop",
+  "source_url": "https://google.com/search?q=laptops",
+  "ab_tests": "experiment_checkout_v2,experiment_ui_dark",
+  "cart_identifier": "CART-USER-987654",
+  "customer": {
+    "id": "CUST-987654",
+    "ip": "10.0.0.55",
+    "browser": "Firefox/123.0",
+    "is_direct": "yes"
+  },
+  "items": [
+    {
+      "sku": "LEGACY-SKU-001",
+      "name": "Ultra Gaming Laptop 17\"",
+      "category_path": "Computers > Laptops > Gaming",
+      "price_usd": 2499.00,
+      "original_price_usd": 2999.00,
+      "qty": 2
+    },
+    {
+      "sku": "LEGACY-SKU-002",
+      "name": "Laptop Cooling Pad",
+      "category_path": "Accessories > Cooling",
+      "price_usd": 49.99,
+      "qty": 1
+    }
+  ],
+  "extra_data": {
+    "campaign": "summer_sale_2024",
+    "affiliate_code": "TECH10",
+    "device_type": "desktop"
+  }
+}
