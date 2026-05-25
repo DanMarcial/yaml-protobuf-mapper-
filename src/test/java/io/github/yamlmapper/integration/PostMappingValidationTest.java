@@ -10,7 +10,6 @@ import com.google.cloud.retail.v2.UserEvent;
 import io.github.yamlmapper.config.FieldConfig;
 import io.github.yamlmapper.config.MappingSchema;
 import io.github.yamlmapper.core.MappingEngine;
-import io.github.yamlmapper.core.MappingResult;
 import io.github.yamlmapper.validation.ValidationResult;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,27 +62,6 @@ class PostMappingValidationTest {
           .hasMessageContaining("POST-mapping validation is not enabled");
     }
 
-    @Test
-    @DisplayName("mapWithDetails should not include validation when disabled")
-    void mapWithDetailsShouldNotIncludeValidation() throws Exception {
-      MappingEngine engine = MappingEngine.builder()
-          .withProtobufPackage("com.google.cloud.retail.v2")
-          .withSchema("home-page-view", createMinimalSchema())
-          .build();
-
-      String json = """
-          {
-            "visitor_id": "VIS-123"
-          }
-          """;
-
-      JsonNode jsonNode = objectMapper.readTree(json);
-      MappingResult<UserEvent> result = engine.mapWithDetails(jsonNode, "home-page-view", UserEvent.class);
-
-      assertThat(result.hasValidation()).isFalse();
-      assertThat(result.validationResult()).isNull();
-      assertThat(result.isValid()).isTrue(); // Should be true when no validation
-    }
   }
 
   @Nested
@@ -228,12 +206,12 @@ class PostMappingValidationTest {
   }
 
   @Nested
-  @DisplayName("mapWithDetails with Validation")
-  class MapWithDetailsValidationTests {
+  @DisplayName("Map and Validate Integration")
+  class MapAndValidateTests {
 
     @Test
-    @DisplayName("should include validation result in mapWithDetails")
-    void shouldIncludeValidationInMapWithDetails() throws Exception {
+    @DisplayName("should validate successfully after mapping")
+    void shouldValidateSuccessfullyAfterMapping() throws Exception {
       MappingEngine engine = MappingEngine.builder()
           .withProtobufPackage("com.google.cloud.retail.v2")
           .withSchema("home-page-view", createMinimalSchema())
@@ -247,17 +225,17 @@ class PostMappingValidationTest {
           """;
 
       JsonNode jsonNode = objectMapper.readTree(json);
-      MappingResult<UserEvent> result = engine.mapWithDetails(jsonNode, "home-page-view", UserEvent.class);
+      UserEvent event = engine.map(jsonNode, "home-page-view", UserEvent.class);
+      ValidationResult result = engine.validateMessage(event);
 
-      assertThat(result.hasValidation()).isTrue();
-      assertThat(result.validationResult()).isNotNull();
+      assertThat(result).isNotNull();
       assertThat(result.isValid()).isTrue();
-      assertThat(result.validationErrors()).isEmpty();
+      assertThat(result.errors()).isEmpty();
     }
 
     @Test
-    @DisplayName("should include validation errors in mapWithDetails")
-    void shouldIncludeValidationErrorsInMapWithDetails() throws Exception {
+    @DisplayName("should detect validation errors after mapping")
+    void shouldDetectValidationErrorsAfterMapping() throws Exception {
       MappingEngine engine = MappingEngine.builder()
           .withProtobufPackage("com.google.cloud.retail.v2")
           .withSchema("search", createSearchSchema())
@@ -272,18 +250,18 @@ class PostMappingValidationTest {
           """;
 
       JsonNode jsonNode = objectMapper.readTree(json);
-      MappingResult<UserEvent> result = engine.mapWithDetails(jsonNode, "search", UserEvent.class);
+      UserEvent event = engine.map(jsonNode, "search", UserEvent.class);
+      ValidationResult result = engine.validateMessage(event);
 
-      assertThat(result.hasValidation()).isTrue();
       assertThat(result.isValid()).isFalse();
-      assertThat(result.validationErrors()).isNotEmpty();
-      assertThat(result.validationErrors()).anyMatch(e ->
+      assertThat(result.errors()).isNotEmpty();
+      assertThat(result.errors()).anyMatch(e ->
           e.contains("search") && e.contains("searchQuery"));
     }
 
     @Test
-    @DisplayName("should detect maxLength violations during mapping")
-    void shouldDetectMaxLengthViolationsDuringMapping() throws Exception {
+    @DisplayName("should detect maxLength violations during validation")
+    void shouldDetectMaxLengthViolationsDuringValidation() throws Exception {
       MappingEngine engine = MappingEngine.builder()
           .withProtobufPackage("com.google.cloud.retail.v2")
           .withSchema("home-page-view", createMinimalSchema())
@@ -297,11 +275,11 @@ class PostMappingValidationTest {
           """.formatted("v".repeat(200));
 
       JsonNode jsonNode = objectMapper.readTree(json);
-      MappingResult<UserEvent> result = engine.mapWithDetails(jsonNode, "home-page-view", UserEvent.class);
+      UserEvent event = engine.map(jsonNode, "home-page-view", UserEvent.class);
+      ValidationResult result = engine.validateMessage(event);
 
-      assertThat(result.hasValidation()).isTrue();
       assertThat(result.isValid()).isFalse();
-      assertThat(result.validationErrors()).anyMatch(e ->
+      assertThat(result.errors()).anyMatch(e ->
           e.contains("visitorId") && e.contains("maxLength"));
     }
   }

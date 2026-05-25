@@ -7,8 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.retail.v2.Product;
 import com.google.cloud.retail.v2.UserEvent;
 import io.github.yamlmapper.core.MappingEngine;
-import io.github.yamlmapper.core.MappingMetrics;
-import io.github.yamlmapper.core.MappingResult;
+import io.github.yamlmapper.validation.ValidationResult;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -58,7 +57,6 @@ class EndToEndMappingTest {
         .withConfig("classpath:integration/mapping/user-event-simple.yaml")
         .withConfig("classpath:integration/mapping/product-simple.yaml")
         .injectEventType(false)
-        .enableMetrics(true)
         .enablePostMappingValidation(true)
         .build();
 
@@ -68,7 +66,6 @@ class EndToEndMappingTest {
         .withConfig("classpath:integration/mapping/user-event-complex.yaml")
         .withConfig("classpath:integration/mapping/product-complex.yaml")
         .injectEventType(false)
-        .enableMetrics(true)
         .enablePostMappingValidation(true)
         .build();
   }
@@ -145,19 +142,6 @@ class EndToEndMappingTest {
       assertThat(detail2.getProduct().getId()).isEqualTo("SKU-LAPTOP-002");
     }
 
-    @Test
-    @DisplayName("should return valid mapping result with details")
-    void shouldReturnValidMappingResult() {
-      MappingResult<UserEvent> result = simpleEngine.mapWithDetails(
-          userEventClean, "user-event-simple", UserEvent.class);
-
-      assertThat(result.message()).isNotNull();
-      assertThat(result.mappingTime()).isNotNull();
-      assertThat(result.warnings()).isEmpty();
-
-      // Validation should pass
-      assertThat(result.isValid()).isTrue();
-    }
   }
 
   @Nested
@@ -450,39 +434,6 @@ class EndToEndMappingTest {
     }
   }
 
-  // ==================== Metrics Tests ====================
-
-  @Nested
-  @DisplayName("Metrics Integration")
-  class MetricsTests {
-
-    @Test
-    @DisplayName("should track successful mappings in metrics")
-    void shouldTrackSuccessfulMappings() {
-      MappingMetrics metrics = simpleEngine.getMetrics();
-      long initialSuccess = metrics.getSuccessfulMappings();
-
-      simpleEngine.map(userEventClean, "user-event-simple", UserEvent.class);
-      simpleEngine.map(productClean, "product-simple", Product.class);
-
-      assertThat(metrics.getSuccessfulMappings()).isEqualTo(initialSuccess + 2);
-      assertThat(metrics.getSuccessRate()).isGreaterThan(0);
-    }
-
-    @Test
-    @DisplayName("should track latency in metrics")
-    void shouldTrackLatency() {
-      MappingMetrics metrics = simpleEngine.getMetrics();
-      metrics.reset();
-
-      simpleEngine.map(userEventClean, "user-event-simple", UserEvent.class);
-
-      assertThat(metrics.getAverageLatencyMs()).isGreaterThan(0);
-      assertThat(metrics.getMinLatencyMs()).isGreaterThan(0);
-      assertThat(metrics.getMaxLatencyMs()).isGreaterThan(0);
-    }
-  }
-
   // ==================== Validation Tests ====================
 
   @Nested
@@ -492,21 +443,19 @@ class EndToEndMappingTest {
     @Test
     @DisplayName("should pass validation for correctly mapped UserEvent")
     void shouldPassValidationForCorrectUserEvent() {
-      MappingResult<UserEvent> result = simpleEngine.mapWithDetails(
-          userEventClean, "user-event-simple", UserEvent.class);
+      UserEvent event = simpleEngine.map(userEventClean, "user-event-simple", UserEvent.class);
+      ValidationResult result = simpleEngine.validateMessage(event);
 
-      assertThat(result.hasValidation()).isTrue();
       assertThat(result.isValid()).isTrue();
-      assertThat(result.validationErrors()).isEmpty();
+      assertThat(result.errors()).isEmpty();
     }
 
     @Test
     @DisplayName("should pass validation for correctly mapped Product")
     void shouldPassValidationForCorrectProduct() {
-      MappingResult<Product> result = simpleEngine.mapWithDetails(
-          productClean, "product-simple", Product.class);
+      Product product = simpleEngine.map(productClean, "product-simple", Product.class);
+      ValidationResult result = simpleEngine.validateMessage(product);
 
-      assertThat(result.hasValidation()).isTrue();
       assertThat(result.isValid()).isTrue();
     }
   }

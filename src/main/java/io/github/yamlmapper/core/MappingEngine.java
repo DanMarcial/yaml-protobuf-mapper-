@@ -10,8 +10,6 @@ import io.github.yamlmapper.builder.TypeConverter;
 import io.github.yamlmapper.config.FieldConfig;
 import io.github.yamlmapper.config.MappingSchema;
 
-import static io.github.yamlmapper.core.MdcKeys.CONFIG_ID;
-import static io.github.yamlmapper.core.MdcKeys.TARGET_TYPE;
 import static io.github.yamlmapper.exception.ErrorMessages.ERR_CONFIG_ID_NULL;
 import static io.github.yamlmapper.exception.ErrorMessages.ERR_CONFIG_NOT_FOUND;
 import static io.github.yamlmapper.exception.ErrorMessages.ERR_JSON_NULL;
@@ -34,10 +32,8 @@ import io.github.yamlmapper.validation.ValidationResult;
 import io.github.yamlmapper.validation.ValidatorRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -95,9 +91,7 @@ public class MappingEngine {
   private final TransformExecutor transformExecutor;
   private final SchemaValidator schemaValidator;
   private final ValidatorRegistry validatorRegistry;
-  private final MappingMetrics metrics;
   private final boolean enablePostMappingValidation;
-  private final boolean enableMetrics;
 
 
   private MappingEngine(Builder builder) {
@@ -123,14 +117,12 @@ public class MappingEngine {
     this.injectEventType = builder.injectEventType;
     this.schemaValidator = new SchemaValidator(typeResolver, transformRegistry);
     this.enablePostMappingValidation = builder.enablePostMappingValidation;
-    this.enableMetrics = builder.enableMetrics;
-    this.metrics = builder.metrics != null ? builder.metrics : new MappingMetrics();
 
     // Initialize POST-mapping validators using registry
     if (enablePostMappingValidation) {
       this.validatorRegistry = builder.validatorRegistry != null
           ? builder.validatorRegistry
-          : createDefaultValidatorRegistry();
+          : createValidatorRegistry(builder.customValidationSchemas);
     } else {
       this.validatorRegistry = new ValidatorRegistry();
     }
@@ -180,147 +172,32 @@ public class MappingEngine {
    * @throws MappingException if mapping fails
    */
   public <T extends Message> T map(JsonNode json, String configId, Class<T> targetClass) {
-    // Set MDC context for log correlation
-    MDC.put(CONFIG_ID, configId);
-    MDC.put(TARGET_TYPE, targetClass.getSimpleName());
+    log.debug("Mapping JSON to {} using config '{}'", targetClass.getSimpleName(), configId);
 
-    long startNanos = enableMetrics ? System.nanoTime() : 0;
-
-    try {
-      log.debug("Mapping JSON to {} using config '{}'", targetClass.getSimpleName(), configId);
-
-      if (json == null) {
-        throw new MappingException(ERR_JSON_NULL);
-      }
-      if (configId == null || configId.isBlank()) {
-        throw new MappingException(ERR_CONFIG_ID_NULL);
-      }
-
-      MappingSchema schema = getConfig(configId);
-      if (schema == null) {
-        throw new ConfigurationException(String.format(ERR_CONFIG_NOT_FOUND, configId));
-      }
-
-      Message.Builder builder = builderFactory.createBuilder(targetClass);
-
-      if (injectEventType) protobufBuilder.setBuilderEventType(builder, configId);
-
-      Map<String, FieldConfig> fieldsToMap = schema.fields();
-      protobufBuilder.build(builder, json, fieldsToMap);
-
-      @SuppressWarnings("unchecked")
-      T result = (T) builder.build();
-
-      if (enableMetrics) {
-        metrics.recordSuccess(System.nanoTime() - startNanos);
-      }
-
-      log.debug("Successfully mapped {} with {} fields", targetClass.getSimpleName(), fieldsToMap.size());
-      return result;
-
-    } catch (Exception e) {
-      if (enableMetrics) {
-        metrics.recordError();
-      }
-      throw e;
-    } finally {
-      MDC.remove(CONFIG_ID);
-      MDC.remove(TARGET_TYPE);
+    if (json == null) {
+      throw new MappingException(ERR_JSON_NULL);
     }
-  }
-
-  /**
-   * Maps a JsonNode to a Protobuf message with detailed status information.
-   *
-   * <p>This method provides insight into the mapping process, including which fields
-   * were mapped, which used defaults, and any warnings encountered.
-   *
-   * @param json the JSON node to map
-   * @param configId the configuration ID
-   * @param targetClass the target Protobuf message class
-   * @param <T> the message type
-   * @return MappingResult containing the message and status details
-   * @throws MappingException if mapping fails
-   */
-  public <T extends Message> MappingResult<T> mapWithDetails(
-      JsonNode json,
-      String configId,
-      Class<T> targetClass) {
-
-    // Set MDC context for log correlation
-    MDC.put(CONFIG_ID, configId);
-    MDC.put(TARGET_TYPE, targetClass.getSimpleName());
-
-    long startTime = System.nanoTime();
-
-    try {
-      log.debug("Mapping JSON to {} with tracking using config '{}'", targetClass.getSimpleName(), configId);
-
-      if (json == null) {
-        throw new MappingException(ERR_JSON_NULL);
-      }
-      if (configId == null || configId.isBlank()) {
-        throw new MappingException(ERR_CONFIG_ID_NULL);
-      }
-
-      MappingSchema schema = getConfig(configId);
-      if (schema == null) {
-        throw new ConfigurationException(String.format(ERR_CONFIG_NOT_FOUND, configId));
-      }
-
-      Message.Builder builder = builderFactory.createBuilder(targetClass);
-
-      if (injectEventType) {
-        protobufBuilder.setBuilderEventType(builder, configId);
-      }
-
-      Map<String, MappingResult.FieldStatus> fieldStatuses = new LinkedHashMap<>();
-      List<String> warnings = new ArrayList<>();
-      Map<String, FieldConfig> fieldsToMap = schema.fields();
-
-      T message = protobufBuilder.buildWithTracking(builder, json, fieldsToMap, fieldStatuses, warnings);
-
-      long endTime = System.nanoTime();
-      Duration mappingTime = Duration.ofNanos(endTime - startTime);
-
-      if (enableMetrics) {
-        metrics.recordSuccess(mappingTime.toNanos());
-      }
-
-      if (!warnings.isEmpty()) {
-        log.warn("Mapping completed with {} warnings for config '{}'", warnings.size(), configId);
-      }
-
-      // Perform POST-mapping validation if enabled
-      ValidationResult validationResult = null;
-      if (enablePostMappingValidation) {
-        validationResult = validateMessageInternal(message);
-        if (!validationResult.isValid()) {
-          metrics.recordValidationError();
-          log.warn("POST-mapping validation failed for config '{}': {} errors",
-              configId, validationResult.errors().size());
-        }
-      }
-
-      log.debug("Mapped {} in {}us - {} fields", targetClass.getSimpleName(), mappingTime.toNanos() / 1000, fieldStatuses.size());
-
-      return MappingResult.<T>builder()
-          .message(message)
-          .fieldStatuses(fieldStatuses)
-          .warnings(warnings)
-          .mappingTime(mappingTime)
-          .validationResult(validationResult)
-          .build();
-
-    } catch (Exception e) {
-      if (enableMetrics) {
-        metrics.recordError();
-      }
-      throw e;
-    } finally {
-      MDC.remove(CONFIG_ID);
-      MDC.remove(TARGET_TYPE);
+    if (configId == null || configId.isBlank()) {
+      throw new MappingException(ERR_CONFIG_ID_NULL);
     }
+
+    MappingSchema schema = getConfig(configId);
+    if (schema == null) {
+      throw new ConfigurationException(String.format(ERR_CONFIG_NOT_FOUND, configId));
+    }
+
+    Message.Builder builder = builderFactory.createBuilder(targetClass);
+
+    if (injectEventType) protobufBuilder.setBuilderEventType(builder, configId);
+
+    Map<String, FieldConfig> fieldsToMap = schema.fields();
+    protobufBuilder.build(builder, json, fieldsToMap);
+
+    @SuppressWarnings("unchecked")
+    T result = (T) builder.build();
+
+    log.debug("Successfully mapped {} with {} fields", targetClass.getSimpleName(), fieldsToMap.size());
+    return result;
   }
 
   /**
@@ -366,7 +243,7 @@ public class MappingEngine {
   /**
    * Validates a Protobuf message against schema constraints (POST-mapping validation).
    *
-   * <p>This validates the built message against Google Cloud Retail API constraints:
+   * <p>This validates the built message against constraints:
    * <ul>
    *   <li>Required fields (always required and conditional by eventType)</li>
    *   <li>String maxLength limits</li>
@@ -418,24 +295,6 @@ public class MappingEngine {
   }
 
   /**
-   * Internal validation method used by mapWithDetails.
-   */
-  private ValidationResult validateMessageInternal(Message message) {
-    if (message == null) {
-      return ValidationResult.invalid(List.of("Message cannot be null"));
-    }
-
-    String messageType = message.getDescriptorForType().getName();
-    ProtobufMessageValidator validator = getValidatorForType(messageType);
-
-    if (validator == null) {
-      return ValidationResult.success();
-    }
-
-    return validator.validate(message);
-  }
-
-  /**
    * Creates a validator from a schema path, returning null if loading fails.
    */
   private static ProtobufMessageValidator createValidator(String schemaPath) {
@@ -449,43 +308,44 @@ public class MappingEngine {
   }
 
   /**
-   * Creates the default validator registry with built-in validators.
+   * Creates a validator registry, using custom schemas when provided,
+   * falling back to default schemas from classpath.
+   *
+   * @param customSchemas user-provided schemas (may be empty)
+   * @return configured ValidatorRegistry
    */
-  private static ValidatorRegistry createDefaultValidatorRegistry() {
+  private static ValidatorRegistry createValidatorRegistry(Map<String, ProtobufConstraints> customSchemas) {
     ValidatorRegistry registry = new ValidatorRegistry();
 
-    ProtobufMessageValidator userEventValidator = createValidator("schemas/user-event.schema.json");
-    if (userEventValidator != null) {
-      registry.register("UserEvent", userEventValidator);
+    // Default schema paths (used when no custom schema provided)
+    Map<String, String> defaultSchemaPaths = Map.of(
+        "UserEvent", "schemas/user-event.schema.json",
+        "Product", "schemas/product.schema.json"
+    );
+
+    // Register custom schemas first
+    for (Map.Entry<String, ProtobufConstraints> entry : customSchemas.entrySet()) {
+      String messageType = entry.getKey();
+      ProtobufConstraints constraints = entry.getValue();
+      registry.register(messageType, new ProtobufMessageValidator(constraints));
+      log.info("Registered custom validator for '{}'", messageType);
     }
 
-    ProtobufMessageValidator productValidator = createValidator("schemas/product.schema.json");
-    if (productValidator != null) {
-      registry.register("Product", productValidator);
+    // Register default schemas for types not already registered
+    for (Map.Entry<String, String> entry : defaultSchemaPaths.entrySet()) {
+      String messageType = entry.getKey();
+      if (registry.hasValidator(messageType)) {
+        continue; // Custom schema already registered
+      }
+
+      ProtobufMessageValidator validator = createValidator(entry.getValue());
+      if (validator != null) {
+        registry.register(messageType, validator);
+        log.debug("Registered default validator for '{}'", messageType);
+      }
     }
 
     return registry;
-  }
-
-  /**
-   * Gets the metrics collector for this engine.
-   *
-   * <p>Use this to access mapping statistics such as success/error counts,
-   * latency measurements, and validation error counts.
-   *
-   * @return the MappingMetrics instance
-   */
-  public MappingMetrics getMetrics() {
-    return metrics;
-  }
-
-  /**
-   * Checks if metrics collection is enabled.
-   *
-   * @return true if metrics are being collected
-   */
-  public boolean isMetricsEnabled() {
-    return enableMetrics;
   }
 
   /**
@@ -527,12 +387,11 @@ public class MappingEngine {
     private final List<String> packagePrefixes = new ArrayList<>();
     private final Map<String, MappingSchema> configCache = new LinkedHashMap<>();
     private final TransformRegistry transformRegistry = new TransformRegistry();
+    private final Map<String, ProtobufConstraints> customValidationSchemas = new LinkedHashMap<>();
     private ObjectMapper objectMapper = new ObjectMapper();
     private boolean injectEventType = true;
     private boolean registerBuiltinTransforms = true;
     private boolean enablePostMappingValidation = false;
-    private boolean enableMetrics = false;
-    private MappingMetrics metrics = null;
     private ValidatorRegistry validatorRegistry = null;
     private final YamlConfigLoader configLoader = new YamlConfigLoader();
 
@@ -541,14 +400,8 @@ public class MappingEngine {
     /**
      * Sets a custom ObjectMapper for JSON parsing.
      *
-     * <p>Use this to share an ObjectMapper instance across your application
-     * or to customize serialization settings (date formats, null handling, etc.).
-     *
-     * <p>If not set, a default ObjectMapper is created.
-     *
      * @param objectMapper the ObjectMapper to use
      * @return this builder for chaining
-     * @throws NullPointerException if objectMapper is null
      */
     public Builder withObjectMapper(ObjectMapper objectMapper) {
       this.objectMapper = Objects.requireNonNull(objectMapper, "ObjectMapper cannot be null");
@@ -557,9 +410,6 @@ public class MappingEngine {
 
     /**
      * Adds a Protobuf package prefix for type resolution.
-     *
-     * <p>When resolving types like "UserEvent", the engine will try
-     * each package prefix in order until a match is found.
      *
      * @param packagePrefix the package prefix (e.g., "com.google.cloud.retail.v2")
      * @return this builder for chaining
@@ -587,18 +437,8 @@ public class MappingEngine {
     /**
      * Loads a YAML configuration file.
      *
-     * <p>Supports multiple path formats:
-     * <ul>
-     *   <li>{@code classpath:mapping/search.yaml} - from classpath</li>
-     *   <li>{@code file:/path/to/config.yaml} - from file system</li>
-     *   <li>{@code search.yaml} - relative classpath path</li>
-     * </ul>
-     *
-     * <p>The configId is derived from the filename without extension.
-     *
      * @param configPath the path to the YAML configuration
      * @return this builder for chaining
-     * @throws ConfigurationException if loading fails
      */
     public Builder withConfig(String configPath) {
       String configId = configLoader.extractConfigId(configPath);
@@ -633,8 +473,6 @@ public class MappingEngine {
     /**
      * Sets whether to register builtin transforms.
      *
-     * <p>Default is true.
-     *
      * @param register true to register builtins
      * @return this builder for chaining
      */
@@ -645,8 +483,6 @@ public class MappingEngine {
 
     /**
      * Sets whether to automatically inject configId as eventType.
-     *
-     * <p>Default is true.
      *
      * @param inject true to inject eventType
      * @return this builder for chaining
@@ -659,16 +495,6 @@ public class MappingEngine {
     /**
      * Enables POST-mapping validation against Protobuf schema constraints.
      *
-     * <p>When enabled, you can call validateMessage() to check:
-     * <ul>
-     *   <li>Required fields (always required and conditional by eventType)</li>
-     *   <li>String maxLength limits</li>
-     *   <li>Numeric ranges (minimum/maximum)</li>
-     *   <li>Enum values</li>
-     * </ul>
-     *
-     * <p>Default is false (disabled).
-     *
      * @param enable true to enable POST-mapping validation
      * @return this builder for chaining
      */
@@ -678,66 +504,10 @@ public class MappingEngine {
     }
 
     /**
-     * Enables metrics collection for mapping operations.
-     *
-     * <p>When enabled, the engine tracks:
-     * <ul>
-     *   <li>Total, successful, and failed mapping counts</li>
-     *   <li>Latency statistics (average, min, max)</li>
-     *   <li>Validation error counts</li>
-     * </ul>
-     *
-     * <p>Access metrics via {@link MappingEngine#getMetrics()}.
-     *
-     * <p>Default is false (disabled).
-     *
-     * @param enable true to enable metrics collection
-     * @return this builder for chaining
-     */
-    public Builder enableMetrics(boolean enable) {
-      this.enableMetrics = enable;
-      return this;
-    }
-
-    /**
-     * Sets a custom MappingMetrics instance for metrics collection.
-     *
-     * <p>Use this to share metrics across multiple engines or to integrate
-     * with external monitoring systems.
-     *
-     * <p>Implicitly enables metrics collection.
-     *
-     * @param metrics the MappingMetrics instance to use
-     * @return this builder for chaining
-     * @throws NullPointerException if metrics is null
-     */
-    public Builder withMetrics(MappingMetrics metrics) {
-      this.metrics = Objects.requireNonNull(metrics, "MappingMetrics cannot be null");
-      this.enableMetrics = true;
-      return this;
-    }
-
-    /**
      * Sets a custom ValidatorRegistry for POST-mapping validation.
-     *
-     * <p>Use this to register validators for custom message types or to
-     * override the default validators.
-     *
-     * <p>Example:
-     * <pre>{@code
-     * ValidatorRegistry registry = new ValidatorRegistry()
-     *     .register("UserEvent", myUserEventValidator)
-     *     .register("CustomMessage", customValidator);
-     *
-     * MappingEngine engine = MappingEngine.builder()
-     *     .withValidatorRegistry(registry)
-     *     .enablePostMappingValidation(true)
-     *     .build();
-     * }</pre>
      *
      * @param validatorRegistry the ValidatorRegistry to use
      * @return this builder for chaining
-     * @throws NullPointerException if validatorRegistry is null
      */
     public Builder withValidatorRegistry(ValidatorRegistry validatorRegistry) {
       this.validatorRegistry = Objects.requireNonNull(validatorRegistry, "ValidatorRegistry cannot be null");
@@ -745,11 +515,60 @@ public class MappingEngine {
     }
 
     /**
+     * Registers a custom validation schema for a message type.
+     *
+     * <p>Use this to override the default schemas or add stricter constraints:
+     * <pre>{@code
+     * MappingEngine engine = MappingEngine.builder()
+     *     .withValidationSchema("UserEvent", "my-schemas/strict-user-event.schema.json")
+     *     .enablePostMappingValidation(true)
+     *     .build();
+     * }</pre>
+     *
+     * @param messageType the Protobuf message type name (e.g., "UserEvent", "Product")
+     * @param schemaPath classpath path to the JSON schema file
+     * @return this builder for chaining
+     * @throws ConfigurationException if the schema cannot be loaded
+     */
+    public Builder withValidationSchema(String messageType, String schemaPath) {
+      Objects.requireNonNull(messageType, "messageType cannot be null");
+      Objects.requireNonNull(schemaPath, "schemaPath cannot be null");
+      try {
+        ProtobufConstraints constraints = ProtobufConstraints.fromClasspath(schemaPath);
+        customValidationSchemas.put(messageType, constraints);
+        return this;
+      } catch (IOException e) {
+        throw new ConfigurationException("Failed to load validation schema: " + schemaPath, e);
+      }
+    }
+
+    /**
+     * Registers a custom validation schema for a message type.
+     *
+     * <p>Use this to provide pre-loaded constraints or load from external sources:
+     * <pre>{@code
+     * ProtobufConstraints strictConstraints = ProtobufConstraints.fromPath(
+     *     Paths.get("/my-project/schemas/strict-user-event.json"));
+     *
+     * MappingEngine engine = MappingEngine.builder()
+     *     .withValidationSchema("UserEvent", strictConstraints)
+     *     .enablePostMappingValidation(true)
+     *     .build();
+     * }</pre>
+     *
+     * @param messageType the Protobuf message type name (e.g., "UserEvent", "Product")
+     * @param constraints the pre-loaded constraints
+     * @return this builder for chaining
+     */
+    public Builder withValidationSchema(String messageType, ProtobufConstraints constraints) {
+      Objects.requireNonNull(messageType, "messageType cannot be null");
+      Objects.requireNonNull(constraints, "constraints cannot be null");
+      customValidationSchemas.put(messageType, constraints);
+      return this;
+    }
+
+    /**
      * Validates the configuration before building.
-     *
-     * <p>This is called automatically during build().
-     *
-     * @throws ConfigurationException if configuration is invalid
      */
     public void validate() {
       if (packagePrefixes.isEmpty()) {
@@ -762,17 +581,12 @@ public class MappingEngine {
     /**
      * Builds the MappingEngine.
      *
-     * <p>All loaded configurations are validated at build time.
-     * Invalid configurations will cause a ConfigurationException.
-     * This provides fail-fast behavior to catch configuration errors early.
-     *
      * @return the configured MappingEngine
      * @throws ConfigurationException if configuration is invalid
      */
     public MappingEngine build() {
       validate();
 
-      // Register builtin transforms if enabled
       if (registerBuiltinTransforms) {
         BuiltinTransforms.registerAll(transformRegistry);
       }

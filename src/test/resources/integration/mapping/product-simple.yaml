@@ -1,5 +1,5 @@
-# Mapeo simple para Product con estructura limpia
-# Campos JSON = campos Protobuf
+# Simple mapping for Product with clean structure
+# JSON fields = Protobuf fields
 
 rootType: Product
 

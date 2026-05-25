@@ -12,8 +12,8 @@
 
     <name>YAML Protobuf Mapper</name>
     <description>
-        Sistema de mapeo YAML-driven para Protobuf.
-        Permite configurar mapeos JSON a Protobuf sin modificar codigo.
+        YAML-driven mapping system for Protobuf.
+        Configure JSON to Protobuf mappings without modifying code.
     </description>
 
     <properties>
@@ -23,13 +23,13 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <!-- Dependencias Core -->
+        <!-- Core Dependencies -->
         <jackson.version>2.17.0</jackson.version>
         <protobuf.version>3.25.9</protobuf.version>
         <slf4j.version>2.0.13</slf4j.version>
         <logback.version>1.5.6</logback.version>
 
-        <!-- Dependencias Test -->
+        <!-- Test Dependencies -->
         <junit.version>5.10.2</junit.version>
         <assertj.version>3.25.3</assertj.version>
         <mockito.version>5.11.0</mockito.version>
@@ -38,9 +38,6 @@
         <!-- Performance -->
         <caffeine.version>3.1.8</caffeine.version>
         <jmh.version>1.37</jmh.version>
-
-        <!-- Observability -->
-        <opentelemetry.version>1.40.0</opentelemetry.version>
 
         <!-- Plugins -->
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
@@ -93,13 +90,6 @@
             <version>${caffeine.version}</version>
         </dependency>
 
-        <!-- OpenTelemetry API (optional - for distributed tracing) -->
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-api</artifactId>
-            <version>${opentelemetry.version}</version>
-        </dependency>
-
         <!-- ============ Test ============ -->
 
         <!-- JUnit 5 -->
@@ -126,7 +116,7 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Google Retail (solo para tests de integracion) -->
+        <!-- Google Retail (integration tests only) -->
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-retail</artifactId>

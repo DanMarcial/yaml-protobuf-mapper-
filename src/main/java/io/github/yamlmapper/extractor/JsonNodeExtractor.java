@@ -33,8 +33,10 @@ public class JsonNodeExtractor {
                 continue;
             }
 
-            // Parse embedded JSON
-            node = jsonParser.tryParse(node);
+            // Parse embedded JSON only if explicitly enabled (opt-in)
+            if (config.parseEmbeddedJson()) {
+                node = jsonParser.tryParse(node);
+            }
 
             // Apply transforms
             node = transformExecutor.apply(node, config, root);

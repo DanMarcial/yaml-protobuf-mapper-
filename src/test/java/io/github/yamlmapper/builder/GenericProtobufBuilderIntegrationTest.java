@@ -244,7 +244,7 @@ class GenericProtobufBuilderIntegrationTest {
 
       assertThatThrownBy(() -> builder.build(jsonNode, "UserEvent", fields))
           .isInstanceOf(MappingException.class)
-          .hasMessageContaining("Required field 'visitorId' is missing");
+          .hasMessageContaining("Required field 'visitorId' not found");
     }
 
     @Test

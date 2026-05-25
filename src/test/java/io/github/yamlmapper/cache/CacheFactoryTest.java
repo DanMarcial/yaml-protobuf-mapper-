@@ -20,7 +20,7 @@ class CacheFactoryTest {
     @Test
     @DisplayName("should create cache with default config")
     void shouldCreateCacheWithDefaultConfig() {
-      Cache<String, String> cache = CacheFactory.createDefault();
+      Cache<String, String> cache = CacheFactory.create(CacheConfig.DEFAULT);
 
       assertNotNull(cache);
 
@@ -48,7 +48,7 @@ class CacheFactoryTest {
     @Test
     @DisplayName("should create path cache")
     void shouldCreatePathCache() {
-      Cache<String, String[]> cache = CacheFactory.createPathCache();
+      Cache<String, String[]> cache = CacheFactory.create(CacheConfig.PATH_CACHE);
 
       assertNotNull(cache);
 
@@ -60,7 +60,7 @@ class CacheFactoryTest {
     @Test
     @DisplayName("should create type cache")
     void shouldCreateTypeCache() {
-      Cache<String, Class<?>> cache = CacheFactory.createTypeCache();
+      Cache<String, Class<?>> cache = CacheFactory.create(CacheConfig.TYPE_CACHE);
 
       assertNotNull(cache);
 
@@ -97,7 +97,7 @@ class CacheFactoryTest {
     @Test
     @DisplayName("should handle concurrent access")
     void shouldHandleConcurrentAccess() throws InterruptedException {
-      Cache<Integer, Integer> cache = CacheFactory.createDefault();
+      Cache<Integer, Integer> cache = CacheFactory.create(CacheConfig.DEFAULT);
 
       Thread[] threads = new Thread[10];
       for (int i = 0; i < 10; i++) {

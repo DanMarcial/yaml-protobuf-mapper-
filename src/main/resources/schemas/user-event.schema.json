@@ -3,7 +3,7 @@
   "$id": "user-event.schema.json",
   "title": "UserEvent",
   "type": "object",
-  "$comment": "Schema de UserEvent para Vertex AI Search for Commerce. Incluye validaciones condicionales por eventType.",
+  "$comment": "UserEvent schema for Vertex AI Search for Commerce. Includes conditional validations by eventType.",
 
   "required": ["eventType", "visitorId"],
 
@@ -126,7 +126,7 @@
 
   "allOf": [
     {
-      "$comment": "SEARCH: requiere searchQuery o pageCategories",
+      "$comment": "SEARCH: requires searchQuery or pageCategories",
       "if": {
         "properties": { "eventType": { "const": "search" } },
         "required": ["eventType"]
@@ -139,7 +139,7 @@
       }
     },
     {
-      "$comment": "ADD TO CART: requiere productDetails",
+      "$comment": "ADD TO CART: requires productDetails",
       "if": {
         "properties": { "eventType": { "const": "add-to-cart" } },
         "required": ["eventType"]
@@ -147,7 +147,7 @@
       "then": { "required": ["productDetails"] }
     },
     {
-      "$comment": "REMOVE FROM CART: requiere productDetails",
+      "$comment": "REMOVE FROM CART: requires productDetails",
       "if": {
         "properties": { "eventType": { "const": "remove-from-cart" } },
         "required": ["eventType"]
@@ -155,7 +155,7 @@
       "then": { "required": ["productDetails"] }
     },
     {
-      "$comment": "DETAIL PAGE VIEW: requiere productDetails",
+      "$comment": "DETAIL PAGE VIEW: requires productDetails",
       "if": {
         "properties": { "eventType": { "const": "detail-page-view" } },
         "required": ["eventType"]
@@ -163,7 +163,7 @@
       "then": { "required": ["productDetails"] }
     },
     {
-      "$comment": "PURCHASE COMPLETE: requiere productDetails y purchaseTransaction",
+      "$comment": "PURCHASE COMPLETE: requires productDetails and purchaseTransaction",
       "if": {
         "properties": { "eventType": { "const": "purchase-complete" } },
         "required": ["eventType"]
@@ -173,7 +173,7 @@
       }
     },
     {
-      "$comment": "CATEGORY PAGE VIEW: requiere pageCategories",
+      "$comment": "CATEGORY PAGE VIEW: requires pageCategories",
       "if": {
         "properties": { "eventType": { "const": "category-page-view" } },
         "required": ["eventType"]
@@ -186,7 +186,7 @@
 
     "ProductDetail": {
       "type": "object",
-      "$comment": "Representa un producto involucrado en el evento.",
+      "$comment": "Represents a product involved in the event.",
       "required": ["product"],
       "properties": {
         "product": {
@@ -201,7 +201,7 @@
 
     "CompletionDetail": {
       "type": "object",
-      "$comment": "Información de autocomplete en eventos de búsqueda.",
+      "$comment": "Autocomplete information in search events.",
       "properties": {
         "completion": { "type": "string" },
         "selectedPosition": {
@@ -213,7 +213,7 @@
 
     "PurchaseTransaction": {
       "type": "object",
-      "$comment": "Información de transacción para purchase-complete.",
+      "$comment": "Transaction information for purchase-complete.",
       "required": ["id"],
       "properties": {
         "id": { "type": "string" },
@@ -226,7 +226,7 @@
 
     "UserInfo": {
       "type": "object",
-      "$comment": "Información del usuario final.",
+      "$comment": "End user information.",
       "properties": {
         "userId": { "type": "string" },
         "ipAddress": { "type": "string" },
@@ -237,7 +237,7 @@
 
     "PanelInfo": {
       "type": "object",
-      "$comment": "Información de paneles de recomendación.",
+      "$comment": "Recommendation panel information.",
       "properties": {
         "panelId": { "type": "string" },
         "displayName": { "type": "string" },

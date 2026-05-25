@@ -6,7 +6,7 @@ import com.google.protobuf.Message;
 import com.google.protobuf.ProtocolMessageEnum;
 import com.google.protobuf.Timestamp;
 import io.github.yamlmapper.config.FieldConfig;
-import io.github.yamlmapper.core.MappingResult.FieldStatus;
+import io.github.yamlmapper.exception.FieldExtractionException;
 import io.github.yamlmapper.exception.MappingException;
 import io.github.yamlmapper.extractor.JsonNodeExtractor;
 import io.github.yamlmapper.resolver.TypeResolver;
@@ -33,7 +33,6 @@ import static io.github.yamlmapper.config.TypeConstants.OBJECT;
 import static io.github.yamlmapper.config.TypeConstants.STRING;
 import static io.github.yamlmapper.config.TypeConstants.TIMESTAMP;
 import static io.github.yamlmapper.exception.ErrorMessages.ERR_FIELD_PROCESSING;
-import static io.github.yamlmapper.exception.ErrorMessages.ERR_REQUIRED_FIELD_MISSING;
 
 public class GenericProtobufBuilder {
 
@@ -85,114 +84,6 @@ public class GenericProtobufBuilder {
         return build(builder, jsonNode, fields);
     }
 
-    /**
-     * Builds a Protobuf message and tracks field statuses for debugging.
-     *
-     * @param builder the message builder
-     * @param jsonNode the source JSON
-     * @param fields the field configurations
-     * @param fieldStatuses map to populate with field statuses (output parameter)
-     * @param warnings list to populate with warnings (output parameter)
-     * @return the built message
-     */
-    @SuppressWarnings("unchecked")
-    public <T extends Message> T buildWithTracking(
-            final Message.Builder builder,
-            final JsonNode jsonNode,
-            final Map<String, FieldConfig> fields,
-            final Map<String, FieldStatus> fieldStatuses,
-            final List<String> warnings) {
-
-        if (fields == null || fields.isEmpty()) {
-            throw new MappingException("Fields configuration cannot be null or empty");
-        }
-
-        populateFieldsWithTracking(builder, jsonNode, fields, fieldStatuses, warnings);
-        return (T) builder.build();
-    }
-
-    private void populateFieldsWithTracking(
-            final Message.Builder builder,
-            final JsonNode jsonNode,
-            final Map<String, FieldConfig> fields,
-            final Map<String, FieldStatus> fieldStatuses,
-            final List<String> warnings) {
-
-        // Track which oneof groups have been set (oneofName -> fieldName that set it)
-        Map<String, String> setOneofs = new LinkedHashMap<>();
-
-        for (Map.Entry<String, FieldConfig> entry : fields.entrySet()) {
-            final String fieldName = entry.getKey();
-            final FieldConfig fieldConfig = entry.getValue();
-
-            try {
-                Object value = buildField(jsonNode, fieldConfig);
-                boolean usedDefault = false;
-                boolean hasTransform = fieldConfig.hasTransform();
-
-                // Apply default value if field is null and default is configured
-                if (value == null && fieldConfig.defaultValue() != null) {
-                    value = convertDefaultValue(fieldConfig.defaultValue(), fieldConfig.type());
-                    usedDefault = true;
-                }
-
-                if (value == null && fieldConfig.required()) {
-                    throw new MappingException(
-                            String.format(ERR_REQUIRED_FIELD_MISSING, fieldName, fieldConfig.source()));
-                }
-
-                if (value != null) {
-                    // Check for oneof conflict before setting value
-                    checkOneofConflict(builder, fieldName, setOneofs, warnings);
-
-                    setterResolver.setValue(builder, fieldName, value);
-                    if (usedDefault) {
-                        fieldStatuses.put(fieldName, FieldStatus.DEFAULT_USED);
-                        warnings.add(String.format("Field '%s' used default value", fieldName));
-                    } else if (hasTransform) {
-                        fieldStatuses.put(fieldName, FieldStatus.TRANSFORM_APPLIED);
-                    } else {
-                        fieldStatuses.put(fieldName, FieldStatus.MAPPED);
-                    }
-                } else {
-                    fieldStatuses.put(fieldName, FieldStatus.SKIPPED_OPTIONAL);
-                }
-            } catch (MappingException e) {
-                throw e;
-            } catch (Exception e) {
-                throw new MappingException(String.format(ERR_FIELD_PROCESSING, fieldName, e.getMessage()), e);
-            }
-        }
-    }
-
-    /**
-     * Checks if setting a field would overwrite another field in the same oneof group.
-     * If so, adds a warning and updates the tracking map.
-     */
-    private void checkOneofConflict(
-            final Message.Builder builder,
-            final String fieldName,
-            final Map<String, String> setOneofs,
-            final List<String> warnings) {
-
-        SetterResolver.OneofInfo oneofInfo = setterResolver.getOneofInfo(builder, fieldName);
-        if (oneofInfo == null) {
-            return; // Field is not part of a oneof
-        }
-
-        String previousField = setOneofs.get(oneofInfo.oneofName());
-        if (previousField != null && !previousField.equals(oneofInfo.fieldName())) {
-            warnings.add(String.format(
-                    "OneOf conflict: field '%s' overwrites '%s' in oneof '%s' (only one field can be set)",
-                    fieldName, previousField, oneofInfo.oneofName()));
-            log.warn("OneOf conflict in '{}': setting '{}' overwrites previous value from '{}'",
-                    oneofInfo.oneofName(), fieldName, previousField);
-        }
-
-        // Track that this oneof is now set by this field
-        setOneofs.put(oneofInfo.oneofName(), oneofInfo.fieldName());
-    }
-
     private void populateFields(
             final Message.Builder builder,
             final JsonNode jsonNode,
@@ -214,8 +105,7 @@ public class GenericProtobufBuilder {
                 }
 
                 if (value == null && fieldConfig.required()) {
-                    throw new MappingException(
-                            String.format(ERR_REQUIRED_FIELD_MISSING, fieldName, fieldConfig.source()));
+                    throw new FieldExtractionException(fieldName, fieldConfig.source());
                 }
 
                 if (value != null) {

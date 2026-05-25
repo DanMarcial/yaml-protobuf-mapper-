@@ -1,5 +1,5 @@
-# Mapeo complejo para JSON con estructura caótica/legacy
-# Demuestra: fallbacks, transforms, defaults, y reestructuración de datos
+# Complex mapping for JSON with chaotic/legacy structure
+# Demonstrates: fallbacks, transforms, defaults, and data restructuring
 
 rootType: UserEvent
 
@@ -11,7 +11,7 @@ fields:
 
   visitorId:
     type: string
-    source: [user_visitor_id, visitor_id, user_id, customer.id]
+    source: [user_visitor_id, visitor_id, visitorId, customer.id]
     required: true
 
   sessionId:
@@ -39,7 +39,7 @@ fields:
     type: string
     source: [cart_identifier, cart_id, cartId]
 
-  # Transform: string CSV a array
+  # Transform: CSV string to array
   experimentIds:
     type: array
     itemType: string
@@ -66,7 +66,7 @@ fields:
         type: boolean
         source: [is_direct, direct_request, directUserRequest]
 
-  # Reestructuración compleja: items[] -> productDetails[]
+  # Complex restructuring: items[] -> productDetails[]
   productDetails:
     type: array
     itemType: ProductDetail
@@ -84,7 +84,7 @@ fields:
           title:
             type: string
             source: [name, product_name, title]
-          # Transform: string path a array de categorías
+          # Transform: path string to category array
           categories:
             type: array
             itemType: string

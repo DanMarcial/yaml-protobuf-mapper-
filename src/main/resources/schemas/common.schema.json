@@ -2,13 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "common.schema.json",
   "title": "Common Types",
-  "$comment": "Tipos compartidos entre Product y UserEvent para Vertex AI Search for Commerce.",
+  "$comment": "Shared types between Product and UserEvent for Vertex AI Search for Commerce.",
 
   "$defs": {
 
     "CustomAttribute": {
       "type": "object",
-      "$comment": "Atributos personalizados dinámicos.",
+      "$comment": "Dynamic custom attributes.",
       "properties": {
         "text": {
           "type": "array",
@@ -25,7 +25,7 @@
 
     "Image": {
       "type": "object",
-      "$comment": "Representa una imagen del producto.",
+      "$comment": "Represents a product image.",
       "properties": {
         "uri": { "type": "string" },
         "height": { "type": "integer" },
@@ -35,7 +35,7 @@
 
     "PriceInfo": {
       "type": "object",
-      "$comment": "Información de precios del producto.",
+      "$comment": "Product pricing information.",
       "properties": {
         "currencyCode": { "type": "string" },
         "price": { "type": "number" },
@@ -65,7 +65,7 @@
 
     "Rating": {
       "type": "object",
-      "$comment": "Información de calificaciones del producto.",
+      "$comment": "Product rating information.",
       "properties": {
         "ratingCount": { "type": "integer", "minimum": 0},
         "averageRating": {
@@ -75,7 +75,7 @@
         },
         "ratingHistogram": {
           "type": "array",
-          "$comment": "Siempre contiene EXACTAMENTE 5 posiciones representando cantidad de ratings 1★, 2★, 3★, 4★ y 5★ respectivamente.",
+          "$comment": "Always contains EXACTLY 5 positions representing count of 1-star, 2-star, 3-star, 4-star, and 5-star ratings respectively.",
           "minItems": 5,
           "maxItems": 5,
           "items": { "type": "integer", "minimum": 0 }
@@ -85,7 +85,7 @@
 
     "FulfillmentInfo": {
       "type": "object",
-      "$comment": "Información de opciones de fulfillment.",
+      "$comment": "Fulfillment options information.",
       "properties": {
         "type": { "type": "string" },
         "placeIds": {
@@ -97,7 +97,7 @@
 
     "Audience": {
       "type": "object",
-      "$comment": "Audiencia objetivo del producto.",
+      "$comment": "Product target audience.",
       "properties": {
         "genders": {
           "type": "array",
@@ -112,7 +112,7 @@
 
     "ColorInfo": {
       "type": "object",
-      "$comment": "Información de colores del producto.",
+      "$comment": "Product color information.",
       "properties": {
         "colorFamilies": {
           "type": "array",
@@ -127,7 +127,7 @@
 
     "Promotion": {
       "type": "object",
-      "$comment": "Promoción aplicable al producto.",
+      "$comment": "Promotion applicable to the product.",
       "properties": {
         "promotionId": { "type": "string" }
       }
@@ -135,7 +135,7 @@
 
     "LocalInventory": {
       "type": "object",
-      "$comment": "Inventario local del producto.",
+      "$comment": "Product local inventory.",
       "properties": {
         "placeId": { "type": "string" },
         "priceInfo": { "$ref": "#/$defs/PriceInfo" },

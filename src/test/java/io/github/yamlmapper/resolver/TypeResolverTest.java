@@ -33,14 +33,14 @@ class TypeResolverTest {
     @DisplayName("should accept valid package list")
     void shouldAcceptValidPackageList() {
       TypeResolver r = new TypeResolver(List.of("com.example"));
-      assertThat(r.getPackagePrefixes()).containsExactly("com.example");
+      assertThat(r).isNotNull();
     }
 
     @Test
     @DisplayName("should accept multiple packages")
     void shouldAcceptMultiplePackages() {
       TypeResolver r = new TypeResolver(List.of("com.example.v1", "com.example.v2"));
-      assertThat(r.getPackagePrefixes()).containsExactly("com.example.v1", "com.example.v2");
+      assertThat(r).isNotNull();
     }
 
     @Test
@@ -57,14 +57,6 @@ class TypeResolverTest {
       assertThatThrownBy(() -> new TypeResolver(List.of()))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("At least one package prefix");
-    }
-
-    @Test
-    @DisplayName("should return immutable package list")
-    void shouldReturnImmutablePackageList() {
-      TypeResolver r = new TypeResolver(List.of("com.example"));
-      assertThatThrownBy(() -> r.getPackagePrefixes().add("another"))
-          .isInstanceOf(UnsupportedOperationException.class);
     }
   }
 

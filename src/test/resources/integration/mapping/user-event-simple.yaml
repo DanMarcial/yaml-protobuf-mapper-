@@ -1,5 +1,5 @@
-# Mapeo simple para JSON con estructura limpia (campos = protobuf)
-# Este YAML demuestra el mapeo 1:1 cuando el JSON ya tiene la estructura correcta
+# Simple mapping for JSON with clean structure (fields = protobuf)
+# This YAML demonstrates 1:1 mapping when JSON already has the correct structure
 
 rootType: UserEvent
 

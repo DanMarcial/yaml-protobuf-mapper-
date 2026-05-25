@@ -59,8 +59,6 @@ class BuiltinTransformsTest {
   static Stream<Arguments> allTransformsWithNames() {
     return Stream.of(
         Arguments.of(new SingleItemToArrayTransform(), "singleItemToArray"),
-        Arguments.of(new ObjectKeysToArrayTransform(), "objectKeysToArray"),
-        Arguments.of(new StringArrayToObjectArrayTransform(), "stringArrayToObjectArray"),
         Arguments.of(new TruncateTransform(), "truncate"),
         Arguments.of(new FilterBlankTransform(), "filterBlank"),
         Arguments.of(new TrimTransform(), "trim"),
@@ -105,8 +103,6 @@ class BuiltinTransformsTest {
   static Stream<Arguments> arrayTransformsThatReturnEmptyArrayForNull() {
     return Stream.of(
         Arguments.of(new SingleItemToArrayTransform(), "singleItemToArray"),
-        Arguments.of(new ObjectKeysToArrayTransform(), "objectKeysToArray"),
-        Arguments.of(new StringArrayToObjectArrayTransform(), "stringArrayToObjectArray"),
         Arguments.of(new FilterBlankTransform(), "filterBlank")
     );
   }
@@ -129,19 +125,22 @@ class BuiltinTransformsTest {
   class BuiltinTransformsUtilityTests {
 
     @Test
-    @DisplayName("registerAll should register all 8 transforms")
+    @DisplayName("registerAll should register all 11 transforms")
     void registerAllShouldRegisterAllTransforms() {
       TransformRegistry registry = new TransformRegistry();
       BuiltinTransforms.registerAll(registry);
 
       assertThat(registry.get("singleItemToArray")).isNotNull();
-      assertThat(registry.get("objectKeysToArray")).isNotNull();
-      assertThat(registry.get("stringArrayToObjectArray")).isNotNull();
       assertThat(registry.get("truncate")).isNotNull();
       assertThat(registry.get("filterBlank")).isNotNull();
       assertThat(registry.get("trim")).isNotNull();
       assertThat(registry.get("lowercase")).isNotNull();
       assertThat(registry.get("uppercase")).isNotNull();
+      assertThat(registry.get("splitToArray")).isNotNull();
+      assertThat(registry.get("mapValue")).isNotNull();
+      assertThat(registry.get("replaceChars")).isNotNull();
+      assertThat(registry.get("stringsToImages")).isNotNull();
+      assertThat(registry.get("zipArrays")).isNotNull();
     }
 
     @Test
@@ -228,124 +227,6 @@ class BuiltinTransformsTest {
       assertThat(result.isArray()).isTrue();
       assertThat(result.size()).isEqualTo(1);
       assertThat(result.get(0).get("key").asText()).isEqualTo("value");
-    }
-  }
-
-  @Nested
-  @DisplayName("ObjectKeysToArrayTransform")
-  class ObjectKeysToArrayTransformTests {
-
-    private ObjectKeysToArrayTransform transform;
-
-    @BeforeEach
-    void setUp() {
-      transform = new ObjectKeysToArrayTransform();
-    }
-
-    @Test
-    @DisplayName("should convert object to key:value strings")
-    void shouldConvertObjectToKeyValueStrings() throws Exception {
-      JsonNode input = mapper.readTree("{\"a\": \"1\", \"b\": \"2\"}");
-      JsonNode result = transform.apply(input, emptyContext());
-
-      assertThat(result.isArray()).isTrue();
-      assertThat(result.size()).isEqualTo(2);
-      String[] values = {result.get(0).asText(), result.get(1).asText()};
-      assertThat(values).containsExactlyInAnyOrder("a:1", "b:2");
-    }
-
-    @Test
-    @DisplayName("should use custom separator")
-    void shouldUseCustomSeparator() throws Exception {
-      JsonNode input = mapper.readTree("{\"key\": \"value\"}");
-      TransformContext ctx = contextWithParams(Map.of("separator", "="));
-
-      JsonNode result = transform.apply(input, ctx);
-
-      assertThat(result.get(0).asText()).isEqualTo("key=value");
-    }
-
-    @Test
-    @DisplayName("should handle non-string values")
-    void shouldHandleNonStringValues() throws Exception {
-      JsonNode input = mapper.readTree("{\"num\": 42, \"bool\": true}");
-      JsonNode result = transform.apply(input, emptyContext());
-
-      assertThat(result.isArray()).isTrue();
-      String[] values = {result.get(0).asText(), result.get(1).asText()};
-      assertThat(values).containsExactlyInAnyOrder("num:42", "bool:true");
-    }
-
-    @Test
-    @DisplayName("should return empty array for non-object")
-    void shouldReturnEmptyArrayForNonObject() {
-      JsonNode input = new TextNode("not an object");
-      JsonNode result = transform.apply(input, emptyContext());
-
-      assertThat(result.isArray()).isTrue();
-      assertThat(result.isEmpty()).isTrue();
-    }
-  }
-
-  @Nested
-  @DisplayName("StringArrayToObjectArrayTransform")
-  class StringArrayToObjectArrayTransformTests {
-
-    private StringArrayToObjectArrayTransform transform;
-
-    @BeforeEach
-    void setUp() {
-      transform = new StringArrayToObjectArrayTransform();
-    }
-
-    @Test
-    @DisplayName("should convert string array to object array with default field")
-    void shouldConvertStringArrayToObjectArrayWithDefaultField() throws Exception {
-      JsonNode input = mapper.readTree("[\"id1\", \"id2\"]");
-      JsonNode result = transform.apply(input, emptyContext());
-
-      assertThat(result.isArray()).isTrue();
-      assertThat(result.size()).isEqualTo(2);
-      assertThat(result.get(0).get("id").asText()).isEqualTo("id1");
-      assertThat(result.get(1).get("id").asText()).isEqualTo("id2");
-    }
-
-    @Test
-    @DisplayName("should use custom field name")
-    void shouldUseCustomFieldName() throws Exception {
-      JsonNode input = mapper.readTree("[\"prod1\", \"prod2\"]");
-      TransformContext ctx = contextWithParams(Map.of("fieldName", "productId"));
-
-      JsonNode result = transform.apply(input, ctx);
-
-      assertThat(result.get(0).get("productId").asText()).isEqualTo("prod1");
-      assertThat(result.get(1).get("productId").asText()).isEqualTo("prod2");
-    }
-
-    @Test
-    @DisplayName("should handle single string input")
-    void shouldHandleSingleStringInput() {
-      JsonNode input = new TextNode("single");
-      JsonNode result = transform.apply(input, emptyContext());
-
-      assertThat(result.isArray()).isTrue();
-      assertThat(result.size()).isEqualTo(1);
-      assertThat(result.get(0).get("id").asText()).isEqualTo("single");
-    }
-
-    @Test
-    @DisplayName("should skip null elements in array")
-    void shouldSkipNullElementsInArray() {
-      ArrayNode input = JsonNodeFactory.instance.arrayNode();
-      input.add("value1");
-      input.addNull();
-      input.add("value2");
-
-      JsonNode result = transform.apply(input, emptyContext());
-
-      assertThat(result.size()).isEqualTo(2);
-      assertThat(result.get(0).get("id").asText()).isEqualTo("value1");
-      assertThat(result.get(1).get("id").asText()).isEqualTo("value2");
     }
   }
 

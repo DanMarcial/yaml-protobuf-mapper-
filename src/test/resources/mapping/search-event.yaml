@@ -62,6 +62,5 @@ fields:
   experimentIds:
     type: array
     itemType: string
-    source: [experimentsIds]
-    transform: objectKeysToArray
+    source: [experimentsIds, experimentIds]
 

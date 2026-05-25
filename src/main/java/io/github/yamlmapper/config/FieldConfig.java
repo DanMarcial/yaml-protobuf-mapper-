@@ -16,6 +16,7 @@ import java.util.Map;
  *   transform: singleItemToArray
  *   transformParams:
  *     key: value
+ *   parseEmbeddedJson: true
  * }</pre>
  *
  * @param name the field name in the target Protobuf message
@@ -32,6 +33,7 @@ import java.util.Map;
  * @param fields for nested objects/arrays/maps, the child field configurations
  * @param required whether the field is required
  * @param defaultValue default value if field is not found
+ * @param parseEmbeddedJson whether to parse JSON strings as embedded JSON (opt-in, default false)
  */
 public record FieldConfig(
     String name,
@@ -47,7 +49,8 @@ public record FieldConfig(
     Map<String, Object> transformParams,
     Map<String, FieldConfig> fields,
     boolean required,
-    Object defaultValue) {
+    Object defaultValue,
+    boolean parseEmbeddedJson) {
 
   /**
    * Creates a minimal FieldConfig for simple fields.
@@ -59,7 +62,7 @@ public record FieldConfig(
    */
   public static FieldConfig of(String name, String type, List<String> source) {
     return new FieldConfig(
-        name, type, source, null, null, null, null, null, null, null, Map.of(), Map.of(), false, null);
+        name, type, source, null, null, null, null, null, null, null, Map.of(), Map.of(), false, null, false);
   }
 
   /**
@@ -99,6 +102,7 @@ public record FieldConfig(
     private Map<String, FieldConfig> fields = Map.of();
     private boolean required = false;
     private Object defaultValue = null;
+    private boolean parseEmbeddedJson = false;
 
     private Builder(String name) {
       this.name = name;
@@ -174,10 +178,15 @@ public record FieldConfig(
       return this;
     }
 
+    public Builder parseEmbeddedJson(boolean parseEmbeddedJson) {
+      this.parseEmbeddedJson = parseEmbeddedJson;
+      return this;
+    }
+
     public FieldConfig build() {
       return new FieldConfig(
           name, type, source, format, objectType, itemType, enumType,
-          keyType, valueType, transform, transformParams, fields, required, defaultValue);
+          keyType, valueType, transform, transformParams, fields, required, defaultValue, parseEmbeddedJson);
     }
   }
 }

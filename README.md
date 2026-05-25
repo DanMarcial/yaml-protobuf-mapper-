@@ -1,20 +1,20 @@
 # YAML Protobuf Mapper
 
-Sistema de mapeo YAML-driven para convertir JSON a mensajes Protobuf sin codigo hardcodeado.
+Lightweight library for mapping JSON to Protobuf messages using YAML configuration. Designed for data pipelines (Google Dataflow/Beam).
 
-## Problema que Resuelve
+## Problem It Solves
 
-En sistemas que procesan eventos JSON hacia Protobuf, los cambios frecuentes requieren modificar codigo y redesplegar. Este modulo permite configurar mapeos via YAML.
+When processing JSON events to Protobuf, changes in data structure require code modifications and redeployment. This library allows configuring mappings via YAML:
 
-| Enfoque Tradicional | Con YAML Mapper |
-|---------------------|-----------------|
-| Modificar codigo Java | Editar archivo YAML |
-| Recompilar proyecto | Sin recompilacion |
-| Redesplegar aplicacion | Cambio de config |
+| Without YAML Mapper | With YAML Mapper |
+|---------------------|------------------|
+| Modify Java code | Edit YAML file |
+| Recompile project | No recompilation |
+| Redeploy application | Configuration change |
 
 ## Quickstart
 
-### 1. Agregar Dependencia
+### 1. Add Dependency
 
 ```xml
 <dependency>
@@ -24,18 +24,7 @@ En sistemas que procesan eventos JSON hacia Protobuf, los cambios frecuentes req
 </dependency>
 ```
 
-### 2. Configurar Engine
-
-```java
-MappingEngine engine = MappingEngine.builder()
-    .withProtobufPackage("com.google.cloud.retail.v2")
-    .withConfig("classpath:mapping/search.yaml")
-    .enableMetrics(true)
-    .enablePostMappingValidation(true)
-    .build();
-```
-
-### 3. Crear Config YAML
+### 2. Create YAML Configuration
 
 ```yaml
 # src/main/resources/mapping/search.yaml
@@ -58,9 +47,16 @@ fields:
     transform: singleItemToArray
 ```
 
-### 4. Mapear
+### 3. Configure and Use the Engine
 
 ```java
+// Build the engine
+MappingEngine engine = MappingEngine.builder()
+    .withProtobufPackage("com.google.cloud.retail.v2")
+    .withConfig("classpath:mapping/search.yaml")
+    .build();
+
+// Map JSON to Protobuf
 String json = """
     {
         "visitor_id": "abc-123",
@@ -76,55 +72,57 @@ event.getSearchQuery();     // "laptop gaming"
 event.getPageCategories(0); // "Electronics"
 ```
 
-## Referencia YAML
+## YAML Reference
 
-### Estructura Base
+### Base Structure
 
 ```yaml
-rootType: MessageType    # Tipo Protobuf destino
+rootType: MessageType    # Target Protobuf type
 
 fields:
   fieldName:
     type: string|int32|int64|float|double|boolean|timestamp|enum|object|array|map
-    source: [campo1, campo2]    # Fallback sources
+    source: [field1, field2]    # Fallback sources (tries in order)
     required: true|false
-    default: "valor"
+    default: "value"
     transform: transformName
     transformParams:
       param1: value1
 ```
 
-### Tipos Soportados
+### Supported Types
 
-| Tipo | Descripcion | Ejemplo |
-|------|-------------|---------|
-| `string` | Texto | `type: string` |
-| `int32` | Entero 32-bit | `type: int32` |
-| `int64` | Entero 64-bit | `type: int64` |
-| `float` | Decimal 32-bit | `type: float` |
-| `double` | Decimal 64-bit | `type: double` |
+| Type | Description | Configuration |
+|------|-------------|---------------|
+| `string` | Text | `type: string` |
+| `int32` | 32-bit integer | `type: int32` |
+| `int64` | 64-bit integer | `type: int64` |
+| `float` | 32-bit decimal | `type: float` |
+| `double` | 64-bit decimal | `type: double` |
 | `boolean` | true/false | `type: boolean` |
-| `timestamp` | Fecha/hora | `type: timestamp` + `format: iso8601` |
-| `enum` | Enumeracion | `type: enum` + `enumType: Product.Availability` |
-| `object` | Objeto anidado | `type: object` + `objectType: PriceInfo` |
-| `array` | Lista | `type: array` + `itemType: string` |
-| `map` | Mapa clave-valor | `type: map` + `keyType: string` + `valueType: string` |
+| `timestamp` | Date/time | `type: timestamp` + `format: iso8601\|unix_millis` |
+| `enum` | Enumeration | `type: enum` + `enumType: Product.Availability` |
+| `object` | Nested object | `type: object` + `objectType: PriceInfo` + `fields: {...}` |
+| `array` | List | `type: array` + `itemType: string\|int32\|ObjectType` |
+| `map` | Key-value map | `type: map` + `keyType: string` + `valueType: string` |
 
-### Formatos de Timestamp
+### Timestamps
 
 ```yaml
+# ISO 8601 format
 eventTime:
   type: timestamp
   source: [timestamp]
   format: iso8601        # "2024-03-15T14:30:00Z"
 
+# Unix milliseconds
 eventTime:
   type: timestamp
   source: [timestamp_ms]
   format: unix_millis    # 1710510600000
 ```
 
-### Objetos Anidados
+### Nested Objects
 
 ```yaml
 priceInfo:
@@ -140,7 +138,7 @@ priceInfo:
       default: "USD"
 ```
 
-### Arrays de Objetos
+### Object Arrays
 
 ```yaml
 productDetails:
@@ -151,9 +149,10 @@ productDetails:
     product:
       type: object
       objectType: Product
-      source: ["."]      # "." = contexto actual
+      source: ["."]      # "." = use current element as context
       fields:
         id:
+          type: string
           source: [sku, product_id, id]
     quantity:
       type: int32
@@ -161,35 +160,60 @@ productDetails:
       default: 1
 ```
 
-## Transforms
-
-### Transforms Disponibles
-
-| Transform | Descripcion | Parametros |
-|-----------|-------------|------------|
-| `singleItemToArray` | Envuelve valor en array | - |
-| `splitToArray` | Divide string en array | `delimiter` |
-| `mapValue` | Mapea valores con diccionario | `mapping`, `default` |
-| `stringsToImages` | Strings a objetos Image | `uriField`, `defaultWidth`, `defaultHeight` |
-| `zipArrays` | Combina arrays paralelos | `merge`, `lookupKey` |
-| `truncate` | Trunca string | `maxLength` |
-| `uppercase` | Convierte a mayusculas | - |
-| `lowercase` | Convierte a minusculas | - |
-| `trim` | Elimina espacios | - |
-| `filterBlank` | Filtra strings vacios | - |
-| `replaceChars` | Reemplaza caracteres | `from`, `to` |
-
-### Ejemplos de Transforms
+### Enums
 
 ```yaml
-# Split string to array
-categories:
+availability:
+  type: enum
+  enumType: Product.Availability
+  source: [stock_status]
+  transform: mapValue
+  transformParams:
+    mapping:
+      available: "IN_STOCK"
+      out_of_stock: "OUT_OF_STOCK"
+    default: "IN_STOCK"
+```
+
+### Maps
+
+```yaml
+attributes:
+  type: map
+  keyType: string
+  valueType: string
+  source: [custom_attributes]
+```
+
+## Transforms
+
+### Available Transforms (11)
+
+| Transform | Description | Parameters |
+|-----------|-------------|------------|
+| `singleItemToArray` | Wraps single value in array | - |
+| `splitToArray` | Splits string into array | `delimiter` |
+| `mapValue` | Maps values with dictionary | `mapping`, `default` |
+| `stringsToImages` | URLs to Image objects | `uriField`, `defaultWidth`, `defaultHeight` |
+| `zipArrays` | Combines parallel arrays into objects | `merge`, `lookupKey` |
+| `truncate` | Truncates string to max length | `maxLength` |
+| `uppercase` | Converts to uppercase | - |
+| `lowercase` | Converts to lowercase | - |
+| `trim` | Removes leading/trailing whitespace | - |
+| `filterBlank` | Filters empty strings from arrays | - |
+| `replaceChars` | Replaces characters | `from`, `to` |
+
+### Transform Examples
+
+```yaml
+# Split CSV string into array
+experimentIds:
   type: array
   itemType: string
-  source: [category_breadcrumb]
+  source: [ab_tests]
   transform: splitToArray
   transformParams:
-    delimiter: " > "
+    delimiter: ","
 
 # Map values
 availability:
@@ -203,195 +227,503 @@ availability:
       out_of_stock: "OUT_OF_STOCK"
     default: "IN_STOCK"
 
-# Merge parallel arrays
-productDetails:
+# Convert breadcrumb to categories
+categories:
   type: array
-  source: [items]
-  transform: zipArrays
+  itemType: string
+  source: [category_breadcrumb]
+  transform: splitToArray
   transformParams:
-    merge:
-      qty: "quantities"
-      price: "prices"
+    delimiter: " > "
+
+# Convert URLs to Image objects
+images:
+  type: array
+  itemType: Image
+  source: [image_urls]
+  transform: stringsToImages
+  transformParams:
+    defaultWidth: 1200
+    defaultHeight: 800
+
+# Replace characters (locale format)
+languageCode:
+  type: string
+  source: [locale]
+  transform: replaceChars
+  transformParams:
+    from: "_"
+    to: "-"
 ```
 
-## Batch Processing
+## Validation
 
-```java
-List<String> jsonList = // miles de JSONs
-BatchMapper batch = engine.batchMapper();
+### Configuration Validation (Build Time)
 
-BatchResult<UserEvent> result = batch.mapBatch(
-    jsonList,
-    "config-id",
-    UserEvent.class
-);
-
-result.successful();  // Lista de exitosos
-result.failed();      // Lista de fallidos con errores
-result.successRate(); // Porcentaje de exito
-```
-
-## Validacion
-
-### Validacion de Config (Build Time)
+The engine automatically validates YAML configuration when built:
 
 ```java
 MappingEngine engine = MappingEngine.builder()
-    .withConfig("classpath:mapping/events.yaml")
-    .validateOnBuild(true)  // Valida al construir
-    .build();
+    .withProtobufPackage("com.google.cloud.retail.v2")
+    .withConfig("classpath:mapping/search.yaml")
+    .build();  // Throws ConfigurationException if errors
 ```
 
-### Validacion Post-Mapping (Runtime)
+Included validations:
+- Valid types (string, int32, array, object, etc.)
+- Transforms exist in registry
+- Sources are not empty
+- Objects have `fields` defined
+- Arrays have `itemType`
+- `objectType` is resolvable in Protobuf package
+
+### Post-Mapping Validation (Runtime)
+
+Validates the built Protobuf message against schema constraints:
 
 ```java
-MappingResult<UserEvent> result = engine.mapWithDetails(
-    json, "config-id", UserEvent.class);
+MappingEngine engine = MappingEngine.builder()
+    .withProtobufPackage("com.google.cloud.retail.v2")
+    .withConfig("classpath:mapping/search.yaml")
+    .enablePostMappingValidation(true)  // Enable validation
+    .build();
+
+UserEvent event = engine.map(json, "search", UserEvent.class);
+ValidationResult result = engine.validateMessage(event);
 
 if (!result.isValid()) {
-    result.validationErrors().forEach(System.out::println);
+    result.errors().forEach(System.out::println);
 }
 ```
 
-## Observabilidad
+POST-mapping validations:
+- Required fields present
+- String max length
+- Numeric ranges (min/max)
+- Valid enum values
 
-### Metricas
+## Configuration Options
 
-```java
-MappingMetrics metrics = engine.getMetrics();
-
-metrics.getSuccessfulMappings();
-metrics.getFailedMappings();
-metrics.getSuccessRate();
-metrics.getAverageLatencyMs();
-```
-
-### Health Check
-
-```java
-HealthCheck health = new HealthCheck(engine.getMetrics());
-
-health.isLive();     // Liveness probe
-health.isReady();    // Readiness probe
-health.toJson();     // JSON para endpoints
-```
-
-### Tracing (OpenTelemetry)
+### Builder Options
 
 ```java
 MappingEngine engine = MappingEngine.builder()
-    .withTracer(openTelemetry.getTracer("mapper"))
+    // Protobuf package(s) for type auto-discovery
+    .withProtobufPackage("com.google.cloud.retail.v2")
+    .withProtobufPackages("com.example.proto", "com.other.proto")
+
+    // Load YAML configurations
+    .withConfig("classpath:mapping/search.yaml")
+    .withConfig("classpath:mapping/add-to-cart.yaml")
+
+    // Inject configId as eventType automatically (default: true)
+    .injectEventType(true)
+
+    // Enable POST-mapping validation (default: false)
+    .enablePostMappingValidation(true)
+
+    // Register custom transform
+    .registerTransform(new MyCustomTransform())
+
+    // Custom ObjectMapper
+    .withObjectMapper(customObjectMapper)
+
     .build();
 ```
 
-## Hot Reload
+### Embedded JSON Parsing (Opt-in)
 
-```java
-ConfigReloader reloader = new ConfigReloader();
-reloader.register(Paths.get("/config/mapping.yaml"), newConfig -> {
-    // Reload logic
-});
-reloader.startWatching();
+If your JSON contains strings with embedded JSON, you can parse it:
+
+```json
+{
+  "data": "{\"visitorId\": \"ABC\", \"items\": [{...}]}"
+}
 ```
 
-## Caracteristicas
+```yaml
+data:
+  type: object
+  source: [data]
+  parseEmbeddedJson: true  # Parse string as JSON
+  fields:
+    visitorId:
+      type: string
+      source: [visitorId]
+```
 
-- **Auto-descubrimiento de tipos**: Solo declaras el package, el engine encuentra las clases
-- **Fallback de campos**: `source: [new_name, legacy_name, old_name]`
-- **Transforms extensibles**: 13 transforms built-in + custom
-- **Objetos anidados**: Soporte recursivo para estructuras complejas
-- **Alto rendimiento**: MethodHandles cacheados (~300ns por mensaje)
-- **Virtual Threads**: Batch processing con Java 21 virtual threads
-- **Observabilidad**: Metricas, health checks, OpenTelemetry
+### Custom Validation Schemas
 
-## Requisitos
+You can use your own JSON schemas for POST-mapping validation:
+
+```java
+// Option 1: Schema from classpath
+MappingEngine engine = MappingEngine.builder()
+    .withProtobufPackage("com.google.cloud.retail.v2")
+    .withValidationSchema("UserEvent", "my-schemas/strict-user-event.schema.json")
+    .enablePostMappingValidation(true)
+    .build();
+
+// Option 2: Schema from filesystem
+ProtobufConstraints strictConstraints = ProtobufConstraints.fromPath(
+    Paths.get("/my-project/schemas/strict-user-event.json"));
+
+MappingEngine engine = MappingEngine.builder()
+    .withProtobufPackage("com.google.cloud.retail.v2")
+    .withValidationSchema("UserEvent", strictConstraints)
+    .enablePostMappingValidation(true)
+    .build();
+```
+
+## Standalone API Usage
+
+Library classes are public and can be used independently for testing or custom integration.
+
+### Testing Transforms
+
+```java
+import io.github.yamlmapper.transform.*;
+import io.github.yamlmapper.transform.builtin.BuiltinTransforms;
+import io.github.yamlmapper.config.FieldConfig;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+
+// Get registry with builtin transforms
+TransformRegistry registry = BuiltinTransforms.createRegistry();
+
+// Get a specific transform
+Transform splitTransform = registry.get("splitToArray");
+
+// Prepare input
+ObjectMapper mapper = new ObjectMapper();
+JsonNode input = mapper.readTree("\"a,b,c\"");
+
+// Create context with parameters
+FieldConfig config = FieldConfig.builder("test")
+    .transformParams(Map.of("delimiter", ","))
+    .build();
+
+TransformContext context = TransformContextImpl.builder()
+    .fieldName("test")
+    .fieldConfig(config)
+    .objectMapper(mapper)
+    .build();
+
+// Execute transform
+JsonNode result = splitTransform.apply(input, context);
+// result = ["a", "b", "c"]
+```
+
+### Creating Custom Transforms
+
+```java
+import io.github.yamlmapper.transform.Transform;
+import io.github.yamlmapper.transform.TransformContext;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+
+public class MyUpperCaseTransform implements Transform {
+
+    @Override
+    public JsonNode apply(JsonNode node, TransformContext context) {
+        if (node == null || !node.isTextual()) {
+            return node;
+        }
+        return new TextNode(node.asText().toUpperCase());
+    }
+
+    @Override
+    public String getName() {
+        return "myUpperCase";
+    }
+}
+
+// Register in the engine
+MappingEngine engine = MappingEngine.builder()
+    .withProtobufPackage("com.google.cloud.retail.v2")
+    .registerTransform(new MyUpperCaseTransform())
+    .withConfig("classpath:mapping/search.yaml")
+    .build();
+```
+
+### Testing Validation
+
+```java
+import io.github.yamlmapper.validation.*;
+import java.nio.file.Paths;
+
+// Load constraints from classpath
+ProtobufConstraints constraints = ProtobufConstraints.fromClasspath(
+    "schemas/user-event.schema.json");
+
+// Or from filesystem
+ProtobufConstraints customConstraints = ProtobufConstraints.fromPath(
+    Paths.get("/my-schemas/strict.json"));
+
+// Create validator
+ProtobufMessageValidator validator = new ProtobufMessageValidator(constraints);
+
+// Validate message
+ValidationResult result = validator.validate(myUserEvent);
+
+if (!result.isValid()) {
+    result.errors().forEach(System.out::println);
+}
+```
+
+### Loading and Validating YAML Configuration
+
+```java
+import io.github.yamlmapper.loader.YamlConfigLoader;
+import io.github.yamlmapper.config.MappingSchema;
+import io.github.yamlmapper.validation.SchemaValidator;
+import io.github.yamlmapper.resolver.TypeResolver;
+import io.github.yamlmapper.transform.builtin.BuiltinTransforms;
+
+// Load YAML
+YamlConfigLoader loader = new YamlConfigLoader();
+MappingSchema schema = loader.load("classpath:mapping/search.yaml");
+
+// Validate structure
+TypeResolver typeResolver = new TypeResolver(List.of("com.google.cloud.retail.v2"));
+TransformRegistry registry = BuiltinTransforms.createRegistry();
+SchemaValidator validator = new SchemaValidator(typeResolver, registry);
+
+ValidationResult result = validator.validate(schema, "search");
+
+if (!result.isValid()) {
+    result.errors().forEach(System.out::println);
+}
+if (!result.warnings().isEmpty()) {
+    result.warnings().forEach(System.out::println);
+}
+```
+
+### Extracting Values from JSON
+
+```java
+import io.github.yamlmapper.extractor.*;
+import io.github.yamlmapper.config.FieldConfig;
+
+ObjectMapper mapper = new ObjectMapper();
+JsonNode root = mapper.readTree(jsonString);
+
+// Create extractor
+PathResolver pathResolver = new PathResolver();
+EmbeddedJsonParser jsonParser = new EmbeddedJsonParser(mapper);
+TransformRegistry registry = BuiltinTransforms.createRegistry();
+TransformExecutor transformExecutor = new TransformExecutor(registry, mapper);
+
+JsonNodeExtractor extractor = new JsonNodeExtractor(
+    pathResolver, jsonParser, transformExecutor);
+
+// Configure field with fallback sources
+FieldConfig config = FieldConfig.builder("visitorId")
+    .type("string")
+    .source("visitor_id", "visitorId", "vid")
+    .build();
+
+// Extract value
+Optional<JsonNode> value = extractor.extract(root, config);
+```
+
+## Features
+
+- **Type auto-discovery**: Just declare the package, the engine finds the classes
+- **Field fallback**: `source: [new_name, legacy_name, old_name]` - tries in order
+- **Extensible transforms**: 11 built-in transforms + custom support
+- **Nested objects**: Recursive support for complex structures
+- **High performance**: Cached MethodHandles for setters
+- **Thread-safe**: Immutable instance after construction
+
+## Requirements
 
 - Java 21+
 - Protobuf 3.x
 
-## Limitaciones Conocidas
+## Known Limitations
 
 ### Map Keys
 
-Solo se soporta `string` como tipo de clave en mapas Protobuf.
+Only `string` as key type in Protobuf maps:
 
 ```yaml
-# ✅ Soportado
+# Supported
 attributes:
   type: map
   keyType: string
   valueType: string
 
-# ❌ No soportado
+# Not supported
 intKeyMap:
   type: map
-  keyType: int32    # Error: solo string permitido
-  valueType: string
+  keyType: int32    # Error: only string allowed
 ```
-
-**Workaround**: Convertir claves numericas a string en el JSON de entrada.
 
 ### OneOf Fields
 
-Los campos `oneof` de Protobuf son mutuamente exclusivos. Si el YAML configura multiples campos del mismo oneof, el ultimo valor establecido sobrescribe los anteriores.
+`oneof` fields are mutually exclusive. If you configure multiple fields from the same oneof, the last one overwrites the previous (warning emitted in logs):
 
 ```yaml
-# Product tiene oneof "expiration" con campos expire_time y ttl
-# Si ambos se configuran:
+# Product has oneof "expiration" with fields expire_time and ttl
 expireTime:
   type: timestamp
   source: [expire_time]
 ttl:
   type: object
   source: [ttl]
-# Warning: "OneOf conflict: field 'ttl' overwrites 'expireTime' in oneof 'expiration'"
+# Warning: "OneOf conflict: 'ttl' overwrites 'expireTime' in oneof 'expiration'"
 ```
 
-**Comportamiento**: Se emite un warning en logs y en `MappingResult.warnings()`, pero el mapeo continua.
+### Protobuf Extensions and Any
 
-**Recomendacion**: Configurar solo uno de los campos del oneof, o usar logica condicional en el JSON de entrada.
+- Protobuf extensions (proto2) not supported
+- `google.protobuf.Any` not supported
+- All types must be known at compile-time
 
-### Protobuf Extensions
+### Type Validation
 
-Las extensiones de Protobuf (proto2) no estan soportadas. El mapper trabaja exclusivamente con campos definidos en el schema base.
-
-### Any y Dynamic Messages
-
-El tipo `google.protobuf.Any` y mensajes dinamicos no estan soportados. Todos los tipos deben ser conocidos en tiempo de compilacion.
-
-### Validacion de Tipos en Runtime
-
-La validacion de tipos se realiza en runtime. Errores de tipo (ej: string donde se espera int) se detectan durante el mapeo, no en la carga del YAML.
+Type errors are detected at runtime during mapping, not when loading YAML:
 
 ```yaml
-# Este YAML carga sin error, pero fallara en runtime si "count" no es numerico
 count:
   type: int32
   source: [count]
-  default: "not-a-number"  # Error en runtime, no en carga
+  default: "not-a-number"  # Error at runtime, not at load
 ```
 
-**Recomendacion**: Usar `validateOnBuild(true)` en el builder para detectar errores de configuracion temprano.
+### Numeric Precision
 
-### Campos Recursivos
+- JSON values > 2^53 may lose precision
+- Workaround: send large numbers as strings
 
-Estructuras recursivas (mensaje que se contiene a si mismo) tienen soporte limitado. Se recomienda limitar la profundidad de anidacion.
+## Complete Example
 
-### Precision Numerica
+### Input JSON (legacy structure)
 
-- `float`: Precision de 32-bit IEEE 754
-- `double`: Precision de 64-bit IEEE 754
-- Valores JSON muy grandes pueden perder precision al convertir
+```json
+{
+  "user_visitor_id": "VIS_987654",
+  "session": "SESS-2024-03-15-ABC",
+  "timestamp": 1710510600000,
+  "ab_tests": "exp_checkout_v2,exp_ui_dark",
+  "customer": {
+    "id": "CUST-987654",
+    "ip": "10.0.0.55"
+  },
+  "items": [
+    {
+      "sku": "LEGACY-SKU-001",
+      "name": "Gaming Laptop",
+      "category_path": "Computers > Laptops > Gaming",
+      "price_usd": 2499.00,
+      "qty": 2
+    }
+  ]
+}
+```
+
+### YAML Configuration
 
 ```yaml
-# Valores > 2^53 pueden perder precision en JavaScript/JSON
-bigNumber:
-  type: int64
-  source: [big_value]  # "9007199254740993" puede llegar como 9007199254740992
+rootType: UserEvent
+
+fields:
+  visitorId:
+    type: string
+    source: [user_visitor_id, visitor_id, visitorId]
+    required: true
+
+  sessionId:
+    type: string
+    source: [session, session_id]
+
+  eventTime:
+    type: timestamp
+    source: [timestamp]
+    format: unix_millis
+
+  experimentIds:
+    type: array
+    itemType: string
+    source: [ab_tests]
+    transform: splitToArray
+    transformParams:
+      delimiter: ","
+
+  userInfo:
+    type: object
+    objectType: UserInfo
+    source: [customer]
+    fields:
+      userId:
+        type: string
+        source: [id]
+      ipAddress:
+        type: string
+        source: [ip]
+
+  productDetails:
+    type: array
+    itemType: ProductDetail
+    source: [items]
+    fields:
+      product:
+        type: object
+        objectType: Product
+        source: ["."]
+        fields:
+          id:
+            type: string
+            source: [sku]
+          title:
+            type: string
+            source: [name]
+          categories:
+            type: array
+            itemType: string
+            source: [category_path]
+            transform: splitToArray
+            transformParams:
+              delimiter: " > "
+          priceInfo:
+            type: object
+            objectType: PriceInfo
+            source: ["."]
+            fields:
+              price:
+                type: float
+                source: [price_usd]
+              currencyCode:
+                type: string
+                default: "USD"
+      quantity:
+        type: int32
+        source: [qty]
+        default: 1
 ```
 
-**Workaround**: Enviar numeros grandes como strings y usar transform custom para convertir.
+### Java Code
 
-## Licencia
+```java
+MappingEngine engine = MappingEngine.builder()
+    .withProtobufPackage("com.google.cloud.retail.v2")
+    .withConfig("classpath:mapping/user-event.yaml")
+    .build();
+
+UserEvent event = engine.map(json, "user-event", UserEvent.class);
+
+// Result:
+event.getVisitorId();                    // "VIS_987654"
+event.getSessionId();                    // "SESS-2024-03-15-ABC"
+event.getEventTime().getSeconds();       // 1710510600
+event.getExperimentIdsList();            // ["exp_checkout_v2", "exp_ui_dark"]
+event.getUserInfo().getUserId();         // "CUST-987654"
+event.getProductDetails(0).getProduct().getId();        // "LEGACY-SKU-001"
+event.getProductDetails(0).getProduct().getTitle();     // "Gaming Laptop"
+event.getProductDetails(0).getProduct().getCategoriesList(); // ["Computers", "Laptops", "Gaming"]
+```
+
+## License
 
 Apache License 2.0

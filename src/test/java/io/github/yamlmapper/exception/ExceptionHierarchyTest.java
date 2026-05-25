@@ -26,8 +26,7 @@ class ExceptionHierarchyTest {
         Arguments.of(new MappingException("test"), "MappingException"),
         Arguments.of(new TypeNotFoundException("Type", "not found"), "TypeNotFoundException"),
         Arguments.of(new FieldExtractionException("field", List.of("src")), "FieldExtractionException"),
-        Arguments.of(new ConfigurationException("error"), "ConfigurationException"),
-        Arguments.of(new TransformException("transform", "field", "error"), "TransformException")
+        Arguments.of(new ConfigurationException("error"), "ConfigurationException")
     );
   }
 
@@ -42,8 +41,7 @@ class ExceptionHierarchyTest {
     return Stream.of(
         Arguments.of(new TypeNotFoundException("Type", "not found"), "TypeNotFoundException"),
         Arguments.of(new FieldExtractionException("field", List.of("src")), "FieldExtractionException"),
-        Arguments.of(new ConfigurationException("error"), "ConfigurationException"),
-        Arguments.of(new TransformException("transform", "field", "error"), "TransformException")
+        Arguments.of(new ConfigurationException("error"), "ConfigurationException")
     );
   }
 
@@ -174,39 +172,4 @@ class ExceptionHierarchyTest {
     }
   }
 
-  // ============================================
-  // TransformException specific tests
-  // ============================================
-
-  @Nested
-  @DisplayName("TransformException")
-  class TransformExceptionTests {
-
-    @Test
-    @DisplayName("should format message with transform and field")
-    void shouldFormatMessage() {
-      TransformException ex = new TransformException("truncate", "description", "maxLength must be positive");
-
-      assertThat(ex.getMessage())
-          .isEqualTo("Transform 'truncate' failed on field 'description': maxLength must be positive");
-    }
-
-    @Test
-    @DisplayName("should store transform and field names")
-    void shouldStoreNames() {
-      TransformException ex = new TransformException("singleItemToArray", "categories", "error");
-
-      assertThat(ex.getTransformName()).isEqualTo("singleItemToArray");
-      assertThat(ex.getFieldName()).isEqualTo("categories");
-    }
-
-    @Test
-    @DisplayName("should preserve cause")
-    void shouldPreserveCause() {
-      NumberFormatException cause = new NumberFormatException("not a number");
-      TransformException ex = new TransformException("toNumber", "amount", "parse error", cause);
-
-      assertThat(ex.getCause()).isSameAs(cause);
-    }
-  }
 }

@@ -146,15 +146,6 @@ public class TypeResolver {
     }
   }
 
-  /**
-   * Gets the configured package prefixes.
-   *
-   * @return immutable list of package prefixes
-   */
-  public List<String> getPackagePrefixes() {
-    return packagePrefixes;
-  }
-
   private Class<?> tryResolveInPackages(String typeName) {
     // Handle nested types: "UserEvent.ProductDetail" -> "UserEvent$ProductDetail"
     String classNameSuffix = typeName.replace('.', '$');

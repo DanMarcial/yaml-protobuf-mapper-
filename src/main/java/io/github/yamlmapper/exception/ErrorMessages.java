@@ -59,10 +59,6 @@ public final class ErrorMessages {
     // Field processing errors
     // ============================================
 
-    /** Error template for missing required field. */
-    public static final String ERR_REQUIRED_FIELD_MISSING =
-        "Required field '%s' is missing and has no default value. Tried sources: %s";
-
     /** Error template for field processing error. */
     public static final String ERR_FIELD_PROCESSING = "Error processing field '%s': %s";
 

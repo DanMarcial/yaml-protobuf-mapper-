@@ -14,8 +14,6 @@ import io.github.yamlmapper.transform.TransformRegistry;
  * <p>Available builtin transforms:
  * <ul>
  *   <li>{@code singleItemToArray} - Wraps single value in array</li>
- *   <li>{@code objectKeysToArray} - Converts object to "key:value" strings</li>
- *   <li>{@code stringArrayToObjectArray} - Converts string array to object array</li>
  *   <li>{@code truncate} - Truncates string to max length</li>
  *   <li>{@code filterBlank} - Removes blank strings from array</li>
  *   <li>{@code trim} - Trims whitespace</li>
@@ -43,8 +41,6 @@ public final class BuiltinTransforms {
   public static TransformRegistry registerAll(TransformRegistry registry) {
     return registry
         .register(new SingleItemToArrayTransform())
-        .register(new ObjectKeysToArrayTransform())
-        .register(new StringArrayToObjectArrayTransform())
         .register(new TruncateTransform())
         .register(new FilterBlankTransform())
         .register(new TrimTransform())

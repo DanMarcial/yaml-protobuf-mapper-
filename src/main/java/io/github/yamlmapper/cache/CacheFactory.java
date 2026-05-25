@@ -50,37 +50,4 @@ public final class CacheFactory {
 
     return builder.build();
   }
-
-  /**
-   * Creates a cache with default configuration.
-   *
-   * @param <K> the key type
-   * @param <V> the value type
-   * @return a new cache with default settings
-   */
-  public static <K, V> Cache<K, V> createDefault() {
-    return create(CacheConfig.DEFAULT);
-  }
-
-  /**
-   * Creates a cache optimized for path resolution.
-   *
-   * @param <K> the key type
-   * @param <V> the value type
-   * @return a new path-optimized cache
-   */
-  public static <K, V> Cache<K, V> createPathCache() {
-    return create(CacheConfig.PATH_CACHE);
-  }
-
-  /**
-   * Creates a cache optimized for type resolution.
-   *
-   * @param <K> the key type
-   * @param <V> the value type
-   * @return a new type-optimized cache
-   */
-  public static <K, V> Cache<K, V> createTypeCache() {
-    return create(CacheConfig.TYPE_CACHE);
-  }
 }

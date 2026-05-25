@@ -7,6 +7,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -18,8 +20,7 @@ import java.util.Optional;
  * Holds validation constraints extracted from JSON Schema files.
  *
  * <p>This class reads constraints from JSON Schema files that define
- * the Protobuf message structure (from Google Cloud Retail API spec).
- * Constraints include:
+ * the Protobuf message structure. Constraints include:
  * <ul>
  *   <li>maxLength for string fields</li>
  *   <li>minimum/maximum for numeric fields</li>
@@ -28,8 +29,25 @@ import java.util.Optional;
  *   <li>enum values</li>
  * </ul>
  *
- * <p>These constraints are NOT user-configurable - they come from the
- * Protobuf/API specification and are used for post-mapping validation.
+ * <p>Schemas can be loaded from multiple sources:
+ * <ul>
+ *   <li>{@link #fromClasspath(String)} - from classpath resources</li>
+ *   <li>{@link #fromPath(Path)} - from filesystem</li>
+ *   <li>{@link #fromInputStream(InputStream)} - from any input stream</li>
+ *   <li>{@link #fromJsonNode(JsonNode)} - from parsed JSON</li>
+ * </ul>
+ *
+ * <p>Example - loading a custom schema with stricter constraints:
+ * <pre>{@code
+ * // Load custom schema from filesystem
+ * ProtobufConstraints strictConstraints = ProtobufConstraints.fromPath(
+ *     Paths.get("my-schemas/strict-user-event.json"));
+ *
+ * // Use with MappingEngine
+ * MappingEngine engine = MappingEngine.builder()
+ *     .withValidationSchema("UserEvent", strictConstraints)
+ *     .build();
+ * }</pre>
  *
  * <p>This class is thread-safe after construction.
  */
@@ -110,6 +128,25 @@ public class ProtobufConstraints {
     ObjectMapper mapper = new ObjectMapper();
     JsonNode schema = mapper.readTree(inputStream);
     return fromJsonNode(schema);
+  }
+
+  /**
+   * Loads constraints from a JSON Schema file on the filesystem.
+   *
+   * <p>Use this method to load custom schemas that are not in the classpath:
+   * <pre>{@code
+   * ProtobufConstraints constraints = ProtobufConstraints.fromPath(
+   *     Paths.get("/my-project/schemas/strict-user-event.json"));
+   * }</pre>
+   *
+   * @param schemaPath path to the schema file
+   * @return ProtobufConstraints parsed from the schema
+   * @throws IOException if schema cannot be read or parsed
+   */
+  public static ProtobufConstraints fromPath(Path schemaPath) throws IOException {
+    try (InputStream is = Files.newInputStream(schemaPath)) {
+      return fromInputStream(is);
+    }
   }
 
   /**
@@ -298,6 +335,18 @@ public class ProtobufConstraints {
    */
   public Optional<List<String>> getEnumValues(String fieldPath) {
     return Optional.ofNullable(enumValues.get(fieldPath));
+  }
+
+  /**
+   * Gets the schema title (message type name).
+   *
+   * <p>The title is extracted from the JSON Schema "title" field
+   * and typically matches the Protobuf message name (e.g., "UserEvent", "Product").
+   *
+   * @return the schema title
+   */
+  public String getSchemaTitle() {
+    return schemaTitle;
   }
 
   /**

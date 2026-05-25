@@ -191,7 +191,8 @@ public class YamlConfigLoader {
         dto.transformParams != null ? Map.copyOf(dto.transformParams) : Map.of(),
         nestedFields.isEmpty() ? Map.of() : Map.copyOf(nestedFields),
         dto.required,
-        dto.defaultValue
+        dto.defaultValue,
+        dto.parseEmbeddedJson
     );
   }
 
@@ -246,6 +247,7 @@ public class YamlConfigLoader {
     public Map<String, Object> transformParams;
     public Map<String, YamlFieldDto> fields;
     public boolean required;
+    public boolean parseEmbeddedJson;
 
     @JsonProperty("default")
     public Object defaultValue;
