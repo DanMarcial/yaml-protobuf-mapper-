@@ -1,6 +1,9 @@
 # Build output
 target/
 
+# Claude Code
+.claude/
+
 # IDE - IntelliJ IDEA
 .idea/
 *.iml
