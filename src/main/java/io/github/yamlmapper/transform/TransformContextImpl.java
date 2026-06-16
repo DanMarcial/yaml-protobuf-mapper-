@@ -3,8 +3,11 @@ package io.github.yamlmapper.transform;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.yamlmapper.config.FieldConfig;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -146,6 +149,26 @@ public class TransformContextImpl implements TransformContext {
       return Collections.unmodifiableMap(result);
     }
     return Map.of();
+  }
+
+  @Override
+  public List<String> getParamAsList(String name) {
+    Object value = params.get(name);
+    if (value == null) {
+      return List.of();
+    }
+    if (value instanceof Collection) {
+      Collection<?> rawList = (Collection<?>) value;
+      List<String> result = new ArrayList<>(rawList.size());
+      for (Object item : rawList) {
+        if (item != null) {
+          result.add(item.toString());
+        }
+      }
+      return Collections.unmodifiableList(result);
+    }
+    // Single value: wrap in list
+    return List.of(value.toString());
   }
 
   /**

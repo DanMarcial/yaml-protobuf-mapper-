@@ -11,11 +11,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Tests for BuilderFactory.
  */
 class BuilderFactoryTest {
+
+  private static final Logger log = LoggerFactory.getLogger(BuilderFactoryTest.class);
 
   private BuilderFactory factory;
 
@@ -182,7 +186,7 @@ class BuilderFactoryTest {
       double avgNanos = elapsed / 10000.0;
       assertThat(avgNanos).isLessThan(10000.0);
 
-      System.out.printf("Average builder creation time: %.2f ns%n", avgNanos);
+      log.info("Average builder creation time: {} ns", String.format("%.2f", avgNanos));
     }
   }
 }

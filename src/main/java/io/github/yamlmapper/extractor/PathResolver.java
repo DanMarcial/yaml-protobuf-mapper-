@@ -54,7 +54,7 @@ public class PathResolver {
    *
    * @param cacheConfig the cache configuration to use
    */
-  public PathResolver(CacheConfig cacheConfig) {
+  public PathResolver(final CacheConfig cacheConfig) {
     this.segmentCache = CacheFactory.create(cacheConfig);
   }
 
@@ -71,7 +71,7 @@ public class PathResolver {
    * @param path the path to resolve (e.g., "user.address.city")
    * @return the resolved JsonNode, or null if path doesn't exist
    */
-  public JsonNode resolve(JsonNode root, String path) {
+  public JsonNode resolve(final JsonNode root, final String path) {
 
     if (root == null || path == null || path.isBlank()) {
       return null;
@@ -99,7 +99,7 @@ public class PathResolver {
     return current;
   }
 
-  private JsonNode resolveSegment(JsonNode current, String segment) {
+  private JsonNode resolveSegment(final JsonNode current, final String segment) {
 
     Matcher matcher = ARRAY_PATTERN.matcher(segment);
 

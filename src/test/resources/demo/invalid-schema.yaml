@@ -1,0 +1,15 @@
+# Invalid schema for demo purposes - has intentional errors
+rootType: UserEvent
+
+fields:
+  visitorId:
+    type: string
+    source: []              # Empty source - will generate warning
+
+  userInfo:
+    type: object            # Missing objectType - will generate error
+    source: [userInfo]
+
+  unknownField:
+    type: array             # Missing itemType - will generate error
+    source: [data]

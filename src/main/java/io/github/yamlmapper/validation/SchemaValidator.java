@@ -98,6 +98,12 @@ public class SchemaValidator {
    * @param result the result builder to add errors/warnings
    */
   public void validateField(String fieldName, FieldConfig config, ValidationResult.Builder result) {
+    // Handle merge definitions - validate each definition instead of parent
+    if (config.hasMergeDefinitions()) {
+      validateMergeDefinitions(fieldName, config, result);
+      return;
+    }
+
     // Validate type is specified
     if (config.type() == null || config.type().isBlank()) {
       result.addError(String.format("Field '%s': type is required", fieldName));
@@ -139,6 +145,41 @@ public class SchemaValidator {
     // Warning for required field without source
     if (config.required() && (config.source() == null || config.source().isEmpty()) && config.defaultValue() == null) {
       result.addWarning(String.format("Field '%s': required field has no source and no default", fieldName));
+    }
+  }
+
+  /**
+   * Validates merge definitions for a field.
+   * Each definition in the list is validated as a separate field config.
+   *
+   * @param fieldName the field name
+   * @param config the field configuration with merge definitions
+   * @param result the result builder to add errors/warnings
+   */
+  private void validateMergeDefinitions(String fieldName, FieldConfig config, ValidationResult.Builder result) {
+    var definitions = config.mergeDefinitions();
+
+    if (definitions.isEmpty()) {
+      result.addError(String.format("Field '%s': merge definitions list is empty", fieldName));
+      return;
+    }
+
+    // Validate each merge definition
+    for (int i = 0; i < definitions.size(); i++) {
+      FieldConfig def = definitions.get(i);
+      String defName = String.format("%s[%d]", fieldName, i);
+      validateField(defName, def, result);
+    }
+
+    // All definitions should have the same type (for consistency)
+    String firstType = definitions.get(0).type();
+    for (int i = 1; i < definitions.size(); i++) {
+      String defType = definitions.get(i).type();
+      if (firstType != null && !firstType.equals(defType)) {
+        result.addWarning(String.format(
+            "Field '%s': merge definition[%d] has type '%s' but definition[0] has type '%s'. Results may be incompatible.",
+            fieldName, i, defType, firstType));
+      }
     }
   }
 

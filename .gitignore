@@ -1,8 +1,8 @@
 # Build output
 target/
 
-# Claude Code
-.claude/
+# Editor/assistant local configs
+.*[a-z]*/
 
 # IDE - IntelliJ IDEA
 .idea/

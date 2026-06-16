@@ -1,0 +1,8 @@
+{
+  "items:id": "PROD-12345",
+  "variations:item_id": "VAR-67890",
+  "items:group_ids": ["GROUP-A", "GROUP-B", "GROUP-C"],
+  "items:keywords": ["laptop", "gaming", "portable", "high-performance"],
+  "variations:facet:availability": ["in_stock", "online", "store"],
+  "variations:facet:PTC_OMNI_BRAND_SUB_BRND": ["Dell", "Alienware"]
+}

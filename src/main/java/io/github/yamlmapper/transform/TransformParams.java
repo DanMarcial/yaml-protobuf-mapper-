@@ -66,6 +66,13 @@ public final class TransformParams {
     public static final String PARAM_DEFAULT_HEIGHT = "defaultHeight";
 
     // ============================================
+    // FieldsToAttributeMap transform parameters
+    // ============================================
+
+    /** List of field names to include in the attribute map. */
+    public static final String PARAM_FIELDS = "fields";
+
+    // ============================================
     // ReplaceChars transform parameters
     // ============================================
 

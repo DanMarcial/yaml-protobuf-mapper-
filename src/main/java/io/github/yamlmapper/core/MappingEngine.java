@@ -9,6 +9,7 @@ import io.github.yamlmapper.builder.SetterResolver;
 import io.github.yamlmapper.builder.TypeConverter;
 import io.github.yamlmapper.config.FieldConfig;
 import io.github.yamlmapper.config.MappingSchema;
+import io.github.yamlmapper.config.SchemaConstants;
 
 import static io.github.yamlmapper.exception.ErrorMessages.ERR_CONFIG_ID_NULL;
 import static io.github.yamlmapper.exception.ErrorMessages.ERR_CONFIG_NOT_FOUND;
@@ -152,7 +153,7 @@ public class MappingEngine {
    * @return the mapped Protobuf message
    * @throws MappingException if mapping fails
    */
-  public <T extends Message> T map(String jsonString, String configId, Class<T> targetClass) {
+  public <T extends Message> T map(final String jsonString, final String configId, final Class<T> targetClass) {
     try {
       JsonNode json = objectMapper.readTree(jsonString);
       return map(json, configId, targetClass);
@@ -171,7 +172,7 @@ public class MappingEngine {
    * @return the mapped Protobuf message
    * @throws MappingException if mapping fails
    */
-  public <T extends Message> T map(JsonNode json, String configId, Class<T> targetClass) {
+  public <T extends Message> T map(final JsonNode json, final String configId, final Class<T> targetClass) {
     log.debug("Mapping JSON to {} using config '{}'", targetClass.getSimpleName(), configId);
 
     if (json == null) {
@@ -206,7 +207,7 @@ public class MappingEngine {
    * @param configId the configuration ID
    * @return the MappingSchema, or null if not found
    */
-  public MappingSchema getConfig(String configId) {
+  public MappingSchema getConfig(final String configId) {
     return configCache.get(configId);
   }
 
@@ -225,7 +226,7 @@ public class MappingEngine {
    * @param configId the configuration ID to validate
    * @return ValidationResult containing any errors and warnings found
    */
-  public ValidationResult validateConfig(String configId) {
+  public ValidationResult validateConfig(final String configId) {
     log.debug("Validating configuration '{}'", configId);
 
     if (configId == null || configId.isBlank()) {
@@ -257,7 +258,7 @@ public class MappingEngine {
    * @return ValidationResult with any constraint violations
    * @throws IllegalStateException if POST-mapping validation is not enabled
    */
-  public ValidationResult validateMessage(Message message) {
+  public ValidationResult validateMessage(final Message message) {
     if (!enablePostMappingValidation) {
       throw new IllegalStateException(
           "POST-mapping validation is not enabled. Use builder.enablePostMappingValidation(true)");
@@ -290,14 +291,14 @@ public class MappingEngine {
   /**
    * Gets the appropriate validator for a message type.
    */
-  private ProtobufMessageValidator getValidatorForType(String messageType) {
+  private ProtobufMessageValidator getValidatorForType(final String messageType) {
     return validatorRegistry.get(messageType);
   }
 
   /**
    * Creates a validator from a schema path, returning null if loading fails.
    */
-  private static ProtobufMessageValidator createValidator(String schemaPath) {
+  private static ProtobufMessageValidator createValidator(final String schemaPath) {
     try {
       ProtobufConstraints constraints = ProtobufConstraints.fromClasspath(schemaPath);
       return new ProtobufMessageValidator(constraints);
@@ -314,14 +315,11 @@ public class MappingEngine {
    * @param customSchemas user-provided schemas (may be empty)
    * @return configured ValidatorRegistry
    */
-  private static ValidatorRegistry createValidatorRegistry(Map<String, ProtobufConstraints> customSchemas) {
+  private static ValidatorRegistry createValidatorRegistry(final Map<String, ProtobufConstraints> customSchemas) {
     ValidatorRegistry registry = new ValidatorRegistry();
 
     // Default schema paths (used when no custom schema provided)
-    Map<String, String> defaultSchemaPaths = Map.of(
-        "UserEvent", "schemas/user-event.schema.json",
-        "Product", "schemas/product.schema.json"
-    );
+    Map<String, String> defaultSchemaPaths = SchemaConstants.DEFAULT_SCHEMA_PATHS;
 
     // Register custom schemas first
     for (Map.Entry<String, ProtobufConstraints> entry : customSchemas.entrySet()) {
@@ -403,7 +401,7 @@ public class MappingEngine {
      * @param objectMapper the ObjectMapper to use
      * @return this builder for chaining
      */
-    public Builder withObjectMapper(ObjectMapper objectMapper) {
+    public Builder withObjectMapper(final ObjectMapper objectMapper) {
       this.objectMapper = Objects.requireNonNull(objectMapper, "ObjectMapper cannot be null");
       return this;
     }
@@ -414,7 +412,7 @@ public class MappingEngine {
      * @param packagePrefix the package prefix (e.g., "com.google.cloud.retail.v2")
      * @return this builder for chaining
      */
-    public Builder withProtobufPackage(String packagePrefix) {
+    public Builder withProtobufPackage(final String packagePrefix) {
       if (packagePrefix != null && !packagePrefix.isBlank()) {
         packagePrefixes.add(packagePrefix);
       }
@@ -427,8 +425,8 @@ public class MappingEngine {
      * @param prefixes the package prefixes
      * @return this builder for chaining
      */
-    public Builder withProtobufPackages(String... prefixes) {
-      for (String prefix : prefixes) {
+    public Builder withProtobufPackages(final String... prefixes) {
+      for (final String prefix : prefixes) {
         withProtobufPackage(prefix);
       }
       return this;
@@ -440,9 +438,9 @@ public class MappingEngine {
      * @param configPath the path to the YAML configuration
      * @return this builder for chaining
      */
-    public Builder withConfig(String configPath) {
-      String configId = configLoader.extractConfigId(configPath);
-      MappingSchema schema = configLoader.load(configPath);
+    public Builder withConfig(final String configPath) {
+      final String configId = configLoader.extractConfigId(configPath);
+      final MappingSchema schema = configLoader.load(configPath);
       configCache.put(configId, schema);
       return this;
     }
@@ -454,7 +452,7 @@ public class MappingEngine {
      * @param schema the mapping schema
      * @return this builder for chaining
      */
-    public Builder withSchema(String configId, MappingSchema schema) {
+    public Builder withSchema(final String configId, final MappingSchema schema) {
       configCache.put(configId, schema);
       return this;
     }
@@ -465,7 +463,7 @@ public class MappingEngine {
      * @param transform the transform to register
      * @return this builder for chaining
      */
-    public Builder registerTransform(Transform transform) {
+    public Builder registerTransform(final Transform transform) {
       transformRegistry.register(transform);
       return this;
     }
@@ -476,7 +474,7 @@ public class MappingEngine {
      * @param register true to register builtins
      * @return this builder for chaining
      */
-    public Builder registerBuiltinTransforms(boolean register) {
+    public Builder registerBuiltinTransforms(final boolean register) {
       this.registerBuiltinTransforms = register;
       return this;
     }
@@ -487,7 +485,7 @@ public class MappingEngine {
      * @param inject true to inject eventType
      * @return this builder for chaining
      */
-    public Builder injectEventType(boolean inject) {
+    public Builder injectEventType(final boolean inject) {
       this.injectEventType = inject;
       return this;
     }
@@ -498,7 +496,7 @@ public class MappingEngine {
      * @param enable true to enable POST-mapping validation
      * @return this builder for chaining
      */
-    public Builder enablePostMappingValidation(boolean enable) {
+    public Builder enablePostMappingValidation(final boolean enable) {
       this.enablePostMappingValidation = enable;
       return this;
     }
@@ -509,7 +507,7 @@ public class MappingEngine {
      * @param validatorRegistry the ValidatorRegistry to use
      * @return this builder for chaining
      */
-    public Builder withValidatorRegistry(ValidatorRegistry validatorRegistry) {
+    public Builder withValidatorRegistry(final ValidatorRegistry validatorRegistry) {
       this.validatorRegistry = Objects.requireNonNull(validatorRegistry, "ValidatorRegistry cannot be null");
       return this;
     }
@@ -530,7 +528,7 @@ public class MappingEngine {
      * @return this builder for chaining
      * @throws ConfigurationException if the schema cannot be loaded
      */
-    public Builder withValidationSchema(String messageType, String schemaPath) {
+    public Builder withValidationSchema(final String messageType, final String schemaPath) {
       Objects.requireNonNull(messageType, "messageType cannot be null");
       Objects.requireNonNull(schemaPath, "schemaPath cannot be null");
       try {
@@ -560,7 +558,7 @@ public class MappingEngine {
      * @param constraints the pre-loaded constraints
      * @return this builder for chaining
      */
-    public Builder withValidationSchema(String messageType, ProtobufConstraints constraints) {
+    public Builder withValidationSchema(final String messageType, final ProtobufConstraints constraints) {
       Objects.requireNonNull(messageType, "messageType cannot be null");
       Objects.requireNonNull(constraints, "constraints cannot be null");
       customValidationSchemas.put(messageType, constraints);
@@ -597,7 +595,7 @@ public class MappingEngine {
       return engine;
     }
 
-    private void validateAllConfigs(MappingEngine engine) {
+    private void validateAllConfigs(final MappingEngine engine) {
       List<String> allErrors = new ArrayList<>();
 
       for (String configId : configCache.keySet()) {

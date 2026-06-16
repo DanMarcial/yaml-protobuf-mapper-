@@ -73,7 +73,7 @@ public class SetterResolver {
    * @param value the value to set
    * @throws MappingException if the setter cannot be found or invoked
    */
-  public void setValue(Message.Builder builder, String fieldName, Object value) {
+  public void setValue(final Message.Builder builder, final String fieldName, final Object value) {
     if (builder == null) {
       throw new IllegalArgumentException("Builder cannot be null");
     }
@@ -117,29 +117,29 @@ public class SetterResolver {
     }
   }
 
-  private SetterInfo getOrCreateSetterInfo(Message.Builder builder, String fieldName) {
+  private SetterInfo getOrCreateSetterInfo(final Message.Builder builder, final String fieldName) {
     String cacheKey = buildCacheKey(builder.getClass(), fieldName);
     return setterCache.computeIfAbsent(cacheKey,
         k -> createSetterInfo(builder, fieldName));
   }
 
-  private SetterInfo getOrCreateAdderInfo(Message.Builder builder, String fieldName) {
+  private SetterInfo getOrCreateAdderInfo(final Message.Builder builder, final String fieldName) {
     String cacheKey = buildCacheKey(builder.getClass(), fieldName) + "#add";
     return setterCache.computeIfAbsent(cacheKey,
         k -> createAdderInfo(builder, fieldName));
   }
 
-  private SetterInfo getOrCreateMapSetterInfo(Message.Builder builder, String fieldName) {
+  private SetterInfo getOrCreateMapSetterInfo(final Message.Builder builder, final String fieldName) {
     String cacheKey = buildCacheKey(builder.getClass(), fieldName) + "#putAll";
     return setterCache.computeIfAbsent(cacheKey,
         k -> createMapSetterInfo(builder, fieldName));
   }
 
-  private String buildCacheKey(Class<?> builderClass, String fieldName) {
+  private String buildCacheKey(final Class<?> builderClass, final String fieldName) {
     return builderClass.getName() + "#" + fieldName;
   }
 
-  private SetterInfo createSetterInfo(Message.Builder builder, String fieldName) {
+  private SetterInfo createSetterInfo(final Message.Builder builder, final String fieldName) {
     // Check if field is repeated using Protobuf descriptor
     FieldDescriptor fd = builder.getDescriptorForType().findFieldByName(fieldName);
 
@@ -181,7 +181,7 @@ public class SetterResolver {
     }
   }
 
-  private SetterInfo createAdderInfo(Message.Builder builder, String fieldName) {
+  private SetterInfo createAdderInfo(final Message.Builder builder, final String fieldName) {
     String methodName = "add" + capitalize(fieldName);
 
     try {
@@ -205,7 +205,7 @@ public class SetterResolver {
     }
   }
 
-  private SetterInfo createMapSetterInfo(Message.Builder builder, String fieldName) {
+  private SetterInfo createMapSetterInfo(final Message.Builder builder, final String fieldName) {
     String methodName = "putAll" + capitalize(fieldName);
 
     try {
@@ -229,7 +229,7 @@ public class SetterResolver {
     }
   }
 
-  private Method findMethod(Class<?> clazz, String methodName) {
+  private Method findMethod(final Class<?> clazz, final String methodName) {
     Method bestMatch = null;
 
     for (Method method : clazz.getMethods()) {
@@ -249,14 +249,14 @@ public class SetterResolver {
     return bestMatch;
   }
 
-  private String capitalize(String name) {
+  private String capitalize(final String name) {
     if (name == null || name.isEmpty()) {
       return name;
     }
     return Character.toUpperCase(name.charAt(0)) + name.substring(1);
   }
 
-  private Object adaptProtobufWrapper(Class<?> targetType, Object value) {
+  private Object adaptProtobufWrapper(final Class<?> targetType, final Object value) {
 
     if (value == null) {
       return null;
@@ -307,7 +307,7 @@ public class SetterResolver {
    * @param fieldName the field name (camelCase)
    * @return OneofInfo if field belongs to a oneof, null otherwise
    */
-  public OneofInfo getOneofInfo(Message.Builder builder, String fieldName) {
+  public OneofInfo getOneofInfo(final Message.Builder builder, final String fieldName) {
     FieldDescriptor fd = findFieldDescriptor(builder, fieldName);
     if (fd == null) {
       return null;
@@ -324,7 +324,7 @@ public class SetterResolver {
   /**
    * Finds the FieldDescriptor for a field name.
    */
-  private FieldDescriptor findFieldDescriptor(Message.Builder builder, String fieldName) {
+  private FieldDescriptor findFieldDescriptor(final Message.Builder builder, final String fieldName) {
     FieldDescriptor fd = builder.getDescriptorForType().findFieldByName(fieldName);
     if (fd == null) {
       String snakeCaseName = CaseConverter.camelToSnake(fieldName);

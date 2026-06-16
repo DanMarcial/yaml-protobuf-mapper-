@@ -334,13 +334,13 @@ class EndToEndMappingTest {
     }
 
     @Test
-    @DisplayName("should transform category_breadcrumb to categories array")
+    @DisplayName("should transform pipe_categories to categories array")
     void shouldTransformCategoryBreadcrumb() {
       Product result = complexEngine.map(productChaotic, "product-complex", Product.class);
 
-      // "Electronics / Computers / Laptops / Business" -> array
+      // "electronics|computers|laptops|business|premium" -> array (pipe delimiter)
       assertThat(result.getCategoriesList())
-          .containsExactly("Electronics", "Computers", "Laptops", "Business");
+          .containsExactly("electronics", "computers", "laptops", "business", "premium");
     }
 
     @Test

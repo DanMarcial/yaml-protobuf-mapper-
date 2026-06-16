@@ -19,6 +19,18 @@ import java.util.Map;
  *   parseEmbeddedJson: true
  * }</pre>
  *
+ * <p>For merge support (multiple definitions for the same field), use array syntax:
+ * <pre>{@code
+ * attributes:
+ *   - type: map
+ *     source: [facets]
+ *     transform: parseKeyValuePairs
+ *   - type: map
+ *     transform: fieldsToAttributeMap
+ *     transformParams:
+ *       fields: [metadata:X]
+ * }</pre>
+ *
  * @param name the field name in the target Protobuf message
  * @param type the data type (string, int32, float, object, array, timestamp, enum, map)
  * @param source list of JSON paths to try in order (fallback support)
@@ -34,6 +46,7 @@ import java.util.Map;
  * @param required whether the field is required
  * @param defaultValue default value if field is not found
  * @param parseEmbeddedJson whether to parse JSON strings as embedded JSON (opt-in, default false)
+ * @param mergeDefinitions for merge support, list of field configs to process and merge (results are combined)
  */
 public record FieldConfig(
     String name,
@@ -50,7 +63,8 @@ public record FieldConfig(
     Map<String, FieldConfig> fields,
     boolean required,
     Object defaultValue,
-    boolean parseEmbeddedJson) {
+    boolean parseEmbeddedJson,
+    List<FieldConfig> mergeDefinitions) {
 
   /**
    * Creates a minimal FieldConfig for simple fields.
@@ -62,7 +76,16 @@ public record FieldConfig(
    */
   public static FieldConfig of(String name, String type, List<String> source) {
     return new FieldConfig(
-        name, type, source, null, null, null, null, null, null, null, Map.of(), Map.of(), false, null, false);
+        name, type, source, null, null, null, null, null, null, null, Map.of(), Map.of(), false, null, false, List.of());
+  }
+
+  /**
+   * Checks if this field has merge definitions configured.
+   *
+   * @return true if merge definitions exist
+   */
+  public boolean hasMergeDefinitions() {
+    return mergeDefinitions != null && !mergeDefinitions.isEmpty();
   }
 
   /**
@@ -103,6 +126,7 @@ public record FieldConfig(
     private boolean required = false;
     private Object defaultValue = null;
     private boolean parseEmbeddedJson = false;
+    private List<FieldConfig> mergeDefinitions = List.of();
 
     private Builder(String name) {
       this.name = name;
@@ -183,10 +207,16 @@ public record FieldConfig(
       return this;
     }
 
+    public Builder mergeDefinitions(List<FieldConfig> mergeDefinitions) {
+      this.mergeDefinitions = mergeDefinitions;
+      return this;
+    }
+
     public FieldConfig build() {
       return new FieldConfig(
           name, type, source, format, objectType, itemType, enumType,
-          keyType, valueType, transform, transformParams, fields, required, defaultValue, parseEmbeddedJson);
+          keyType, valueType, transform, transformParams, fields, required, defaultValue,
+          parseEmbeddedJson, mergeDefinitions);
     }
   }
 }

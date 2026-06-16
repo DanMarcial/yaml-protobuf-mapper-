@@ -8,11 +8,15 @@ import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Descriptors.OneofDescriptor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Tests for oneof field detection and conflict handling.
  */
 class OneofDetectionTest {
+
+  private static final Logger log = LoggerFactory.getLogger(OneofDetectionTest.class);
 
   private SetterResolver setterResolver;
 
@@ -23,26 +27,26 @@ class OneofDetectionTest {
 
   @Test
   void detectOneofFieldsInUserEvent() {
-    System.out.println("=== UserEvent OneOf fields ===");
+    log.info("=== UserEvent OneOf fields ===");
     for (OneofDescriptor oneof : UserEvent.getDescriptor().getOneofs()) {
-      System.out.println("OneOf: " + oneof.getName());
+      log.info("OneOf: {}", oneof.getName());
       for (FieldDescriptor field : oneof.getFields()) {
-        System.out.println("  - " + field.getName());
+        log.info("  - {}", field.getName());
       }
     }
-    System.out.println("Total oneofs: " + UserEvent.getDescriptor().getOneofs().size());
+    log.info("Total oneofs: {}", UserEvent.getDescriptor().getOneofs().size());
   }
 
   @Test
   void detectOneofFieldsInProduct() {
-    System.out.println("\n=== Product OneOf fields ===");
+    log.info("\n=== Product OneOf fields ===");
     for (OneofDescriptor oneof : Product.getDescriptor().getOneofs()) {
-      System.out.println("OneOf: " + oneof.getName());
+      log.info("OneOf: {}", oneof.getName());
       for (FieldDescriptor field : oneof.getFields()) {
-        System.out.println("  - " + field.getName());
+        log.info("  - {}", field.getName());
       }
     }
-    System.out.println("Total oneofs: " + Product.getDescriptor().getOneofs().size());
+    log.info("Total oneofs: {}", Product.getDescriptor().getOneofs().size());
   }
 
   @Test

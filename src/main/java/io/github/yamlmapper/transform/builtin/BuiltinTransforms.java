@@ -24,6 +24,8 @@ import io.github.yamlmapper.transform.TransformRegistry;
  *   <li>{@code replaceChars} - Replaces characters in string</li>
  *   <li>{@code stringsToImages} - Converts string URLs to Image objects</li>
  *   <li>{@code zipArrays} - Merges parallel arrays into unified objects</li>
+ *   <li>{@code fieldsToAttributeMap} - Converts fields to CustomAttribute map</li>
+ *   <li>{@code parseKeyValuePairs} - Parses "key:value|key:value" string to CustomAttribute map</li>
  * </ul>
  */
 public final class BuiltinTransforms {
@@ -50,7 +52,9 @@ public final class BuiltinTransforms {
         .register(new MapValueTransform())
         .register(new ReplaceCharsTransform())
         .register(new StringsToImagesTransform())
-        .register(new ZipArraysTransform());
+        .register(new ZipArraysTransform())
+        .register(new FieldsToAttributeMapTransform())
+        .register(new ParseKeyValuePairsTransform());
   }
 
   /**

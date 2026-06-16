@@ -40,5 +40,28 @@
   "legacy_fields": {
     "old_sku": "DELLXPS15-2024",
     "warehouse_code": "WH-AUSTIN-01"
+  },
+
+  "pipe_categories": "electronics|computers|laptops|business|premium",
+
+  "facets": "Price:1599.00|Display Size:15.6|Weight:4.5|RAM:16|Storage:512|Processor:Intel Core i7|Graphics:Intel Iris Xe|Battery Life:13|Feature:Touchscreen|Feature:Backlit Keyboard|Feature:Thunderbolt 4|Condition:New|Warranty:1 Year",
+
+  "metadata:PTC_OMNI_BRAND_PRIMARY": "Dell",
+  "metadata:PTC_OMNI_CATEGORY": "Laptops",
+  "metadata:PTC_OMNI_SUBCATEGORY": "Business Laptops",
+  "metadata:list_price": "1899.00",
+  "metadata:sale_price": "1599.00",
+
+  "facet:display_type": "OLED",
+  "facet:resolution": "3456x2160",
+  "facet:refresh_rate": "60Hz",
+
+  "variations:facet:color_options": ["Platinum Silver", "Frost White", "Graphite"],
+  "variations:facet:storage_options": ["256GB", "512GB", "1TB"],
+
+  "custom_attributes": {
+    "eco_friendly": true,
+    "energy_star_certified": true,
+    "recycled_materials_percent": 25
   }
 }

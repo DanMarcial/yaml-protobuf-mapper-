@@ -370,7 +370,7 @@ class TransformContextImplTest {
     void shouldHandleNullTransformParams() {
       FieldConfig config = new FieldConfig(
           "test", "string", null, null, null, null, null,
-          null, null, null, null, null, false, null, false
+          null, null, null, null, null, false, null, false, null
       );
 
       TransformContext ctx = TransformContextImpl.builder()

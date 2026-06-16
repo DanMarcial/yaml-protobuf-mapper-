@@ -12,6 +12,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Integration tests using real JSON samples from production-like events.
@@ -20,6 +22,8 @@ import org.junit.jupiter.api.Test;
  * including all field types, transforms, and edge cases.
  */
 class RealJsonIntegrationTest {
+
+  private static final Logger log = LoggerFactory.getLogger(RealJsonIntegrationTest.class);
 
   private static MappingEngine engine;
   private static ObjectMapper objectMapper;
@@ -345,7 +349,7 @@ class RealJsonIntegrationTest {
       long elapsed = System.nanoTime() - start;
 
       double avgNanos = (double) elapsed / iterations;
-      System.out.printf("Average mapping time: %.2f ns%n", avgNanos);
+      log.info("Average mapping time: {} ns", String.format("%.2f", avgNanos));
 
       // Should be well under 1ms per mapping
       assertThat(avgNanos).isLessThan(1_000_000);

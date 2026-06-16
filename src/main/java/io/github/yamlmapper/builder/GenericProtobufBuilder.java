@@ -217,11 +217,19 @@ public class GenericProtobufBuilder {
      * extraction is done once and the value is passed directly to the converter.
      * This avoids redundant extraction calls for better performance.
      *
+     * <p>For fields with merge definitions, each definition is processed separately
+     * and results are merged (maps are combined, arrays are concatenated).
+     *
      * @param jsonNode the source JSON
      * @param config the field configuration
      * @return the converted value, or null if not found
      */
     public Object buildField(final JsonNode jsonNode, final FieldConfig config) {
+        // Handle merge definitions
+        if (config.hasMergeDefinitions()) {
+            return buildMergedField(jsonNode, config);
+        }
+
         final String type = config.type();
 
         // For primitive types, extract once and convert directly
@@ -243,6 +251,58 @@ public class GenericProtobufBuilder {
             case MAP -> buildMap(jsonNode, config);
             default -> throw new IllegalStateException("Unsupported type: " + type);
         };
+    }
+
+    /**
+     * Builds a field by processing multiple merge definitions and combining results.
+     * Currently supports merging maps (entries are combined) and arrays (concatenated).
+     *
+     * @param jsonNode the source JSON
+     * @param config the field configuration with merge definitions
+     * @return the merged value, or null if all definitions return null
+     */
+    @SuppressWarnings("unchecked")
+    private Object buildMergedField(final JsonNode jsonNode, final FieldConfig config) {
+        final String type = config.type();
+
+        if (MAP.equals(type)) {
+            // Merge maps: combine all entries from each definition
+            Map<String, Object> mergedMap = new LinkedHashMap<>();
+
+            for (FieldConfig definition : config.mergeDefinitions()) {
+                Object result = buildField(jsonNode, definition);
+                if (result instanceof Map) {
+                    Map<String, Object> partialMap = (Map<String, Object>) result;
+                    mergedMap.putAll(partialMap);
+                }
+            }
+
+            return mergedMap.isEmpty() ? null : mergedMap;
+        }
+
+        if (ARRAY.equals(type)) {
+            // Merge arrays: concatenate all results
+            List<Object> mergedList = new ArrayList<>();
+
+            for (FieldConfig definition : config.mergeDefinitions()) {
+                Object result = buildField(jsonNode, definition);
+                if (result instanceof List) {
+                    mergedList.addAll((List<?>) result);
+                }
+            }
+
+            return mergedList.isEmpty() ? null : mergedList;
+        }
+
+        // For other types, use the first non-null result (fallback behavior)
+        for (FieldConfig definition : config.mergeDefinitions()) {
+            Object result = buildField(jsonNode, definition);
+            if (result != null) {
+                return result;
+            }
+        }
+
+        return null;
     }
 
     /**

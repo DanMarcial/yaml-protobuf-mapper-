@@ -141,4 +141,23 @@ public interface TransformContext {
    * @return the parameter as a Map, or empty map if not defined/invalid
    */
   Map<String, String> getParamAsMap(String name);
+
+  /**
+   * Gets a transform parameter as a List of Strings.
+   *
+   * <p>Useful for transforms that need a list of field names or values:
+   * <pre>{@code
+   * fieldName:
+   *   transform: fieldsToAttributeMap
+   *   transformParams:
+   *     fields:
+   *       - vendor
+   *       - lengths_cm
+   *       - heights_cm
+   * }</pre>
+   *
+   * @param name the parameter name
+   * @return the parameter as a List, or empty list if not defined/invalid
+   */
+  java.util.List<String> getParamAsList(String name);
 }

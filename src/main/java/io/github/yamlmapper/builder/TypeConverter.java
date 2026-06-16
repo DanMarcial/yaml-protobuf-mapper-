@@ -40,7 +40,7 @@ public class TypeConverter {
    * @return converted value or null
    */
   @SuppressWarnings("unchecked")
-  public <T> T convert(JsonNode node, Class<T> targetType) {
+  public <T> T convert(final JsonNode node, final Class<T> targetType) {
 
     if (isNullNode(node)) {
       return null;
@@ -90,21 +90,32 @@ public class TypeConverter {
 
   /**
    * Converts node to String.
+   *
+   * <p>Returns null for blank strings (empty or whitespace only).
+   * This ensures that fields with {@code required: true} will fail
+   * validation when the source value is blank.
    */
-  public String convertToString(JsonNode node) {
+  public String convertToString(final JsonNode node) {
 
     if (isNullNode(node)) {
       return null;
     }
 
-    return node.asText();
+    final String text = node.asText();
+
+    // Treat blank strings as null to properly fail required validation
+    if (text.isBlank()) {
+      return null;
+    }
+
+    return text;
   }
 
   /**
    * Converts node to Integer.
    * Validates that the value is within Integer range to prevent silent overflow.
    */
-  public Integer convertToInteger(JsonNode node) {
+  public Integer convertToInteger(final JsonNode node) {
 
     if (isNullNode(node)) {
       return null;
@@ -143,7 +154,7 @@ public class TypeConverter {
     }
   }
 
-  private void validateIntegerRange(long value) {
+  private void validateIntegerRange(final long value) {
     if (value > Integer.MAX_VALUE || value < Integer.MIN_VALUE) {
       throw new MappingException(
               String.format("Integer overflow: value %d is outside valid range [%d, %d]",
@@ -154,7 +165,7 @@ public class TypeConverter {
   /**
    * Converts node to Long.
    */
-  public Long convertToLong(JsonNode node) {
+  public Long convertToLong(final JsonNode node) {
 
     if (isNullNode(node)) {
       return null;
@@ -191,7 +202,7 @@ public class TypeConverter {
   /**
    * Converts node to Float.
    */
-  public Float convertToFloat(JsonNode node) {
+  public Float convertToFloat(final JsonNode node) {
 
     if (isNullNode(node)) {
       return null;
@@ -228,7 +239,7 @@ public class TypeConverter {
   /**
    * Converts node to Double.
    */
-  public Double convertToDouble(JsonNode node) {
+  public Double convertToDouble(final JsonNode node) {
 
     if (isNullNode(node)) {
       return null;
@@ -265,7 +276,7 @@ public class TypeConverter {
   /**
    * Converts node to Boolean.
    */
-  public Boolean convertToBoolean(JsonNode node) {
+  public Boolean convertToBoolean(final JsonNode node) {
 
     if (isNullNode(node)) {
       return null;
@@ -309,7 +320,7 @@ public class TypeConverter {
    *   <li>Unix milliseconds (when format="unix_millis")</li>
    * </ul>
    */
-  public Timestamp convertTimestamp(JsonNode node, String format) {
+  public Timestamp convertTimestamp(final JsonNode node, final String format) {
 
     if (isNullNode(node)) {
       return null;
@@ -363,7 +374,7 @@ public class TypeConverter {
    * @param timestamp the timestamp string
    * @return normalized timestamp with proper offset format
    */
-  private String normalizeTimezoneOffset(String timestamp) {
+  private String normalizeTimezoneOffset(final String timestamp) {
     Matcher matcher = TIMEZONE_WITHOUT_COLON.matcher(timestamp);
     if (matcher.find()) {
       return matcher.replaceFirst("$1$2:$3");
@@ -377,7 +388,7 @@ public class TypeConverter {
    * @param isoString the ISO 8601 timestamp string
    * @return the parsed Instant
    */
-  private Instant parseToInstant(String isoString) {
+  private Instant parseToInstant(final String isoString) {
     // Try parsing as Instant first (handles Z suffix)
     if (isoString.endsWith("Z")) {
       return Instant.parse(isoString);
@@ -392,8 +403,8 @@ public class TypeConverter {
    * Converts JSON array to typed list.
    */
   public <T> List<T> convertList(
-          JsonNode arrayNode,
-          Class<T> elementType
+          final JsonNode arrayNode,
+          final Class<T> elementType
   ) {
 
     if (isNullNode(arrayNode)) {
@@ -423,8 +434,8 @@ public class TypeConverter {
    * Converts protobuf enum values.
    */
   public <E extends Enum<E>> E convertEnum(
-          JsonNode node,
-          Class<E> enumClass
+          final JsonNode node,
+          final Class<E> enumClass
   ) {
 
     if (isNullNode(node)) {
@@ -457,19 +468,19 @@ public class TypeConverter {
   // Helpers
   // =========================================================
 
-  private boolean isNullNode(JsonNode node) {
+  private boolean isNullNode(final JsonNode node) {
     return node == null
             || node.isNull()
             || node.isMissingNode();
   }
 
-  private String normalizedText(JsonNode node) {
+  private String normalizedText(final JsonNode node) {
     return node.asText().trim();
   }
 
   private MappingException invalidConversion(
-          JsonNode node,
-          String targetType
+          final JsonNode node,
+          final String targetType
   ) {
 
     return new MappingException(

@@ -1,5 +1,13 @@
 # Complex mapping for Product with legacy/chaotic structure
-# Demonstrates: fallbacks, transforms, defaults, different name mapping
+# Demonstrates ALL transforms and merge definitions:
+# - splitToArray: breadcrumb and pipe-delimited strings
+# - singleItemToArray: wrap single values
+# - mapValue: map strings to enums
+# - stringsToImages: URLs to Image objects
+# - replaceChars: locale format conversion
+# - parseKeyValuePairs: facets string parsing
+# - fieldsToAttributeMap: metadata fields to attributes
+# - MERGE DEFINITIONS: combine multiple sources into single field
 
 rootType: Product
 
@@ -17,14 +25,15 @@ fields:
     type: string
     source: [long_description, description, short_description]
 
-  # Transform: breadcrumb string to array
+  # Transform: breadcrumb string to array (slash delimiter)
+  # Also supports pipe delimiter as fallback
   categories:
     type: array
     itemType: string
-    source: [category_breadcrumb, categories]
+    source: [pipe_categories, category_breadcrumb, categories]
     transform: splitToArray
     transformParams:
-      delimiter: " / "
+      delimiter: "|"
 
   # Transform: single field to array
   brands:
@@ -154,3 +163,74 @@ fields:
     type: timestamp
     source: [valid_until, expireTime]
     format: iso8601
+
+  # ============================================================
+  # MERGED ATTRIBUTES: combines multiple sources into single map
+  # Uses array syntax for merge definitions
+  # ============================================================
+  attributes:
+    # First source: Parse facets string "Key:Value|Key:Value"
+    - type: map
+      source: [facets]
+      keyType: string
+      valueType: object
+      objectType: CustomAttribute
+      transform: parseKeyValuePairs
+      transformParams:
+        pairDelimiter: "|"
+        keyValueDelimiter: ":"
+      fields:
+        text:
+          type: array
+          itemType: string
+          source: [text]
+        numbers:
+          type: array
+          itemType: double
+          source: [numbers]
+
+    # Second source: metadata:* fields with literal colon names
+    - type: map
+      source: ["."]
+      keyType: string
+      valueType: object
+      objectType: CustomAttribute
+      transform: fieldsToAttributeMap
+      transformParams:
+        fields:
+          - "metadata:PTC_OMNI_BRAND_PRIMARY"
+          - "metadata:PTC_OMNI_CATEGORY"
+          - "metadata:PTC_OMNI_SUBCATEGORY"
+          - "metadata:list_price"
+          - "metadata:sale_price"
+      fields:
+        text:
+          type: array
+          itemType: string
+          source: [text]
+        numbers:
+          type: array
+          itemType: double
+          source: [numbers]
+
+    # Third source: facet:* fields
+    - type: map
+      source: ["."]
+      keyType: string
+      valueType: object
+      objectType: CustomAttribute
+      transform: fieldsToAttributeMap
+      transformParams:
+        fields:
+          - "facet:display_type"
+          - "facet:resolution"
+          - "facet:refresh_rate"
+      fields:
+        text:
+          type: array
+          itemType: string
+          source: [text]
+        numbers:
+          type: array
+          itemType: double
+          source: [numbers]

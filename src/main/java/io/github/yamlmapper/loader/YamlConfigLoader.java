@@ -1,6 +1,7 @@
 package io.github.yamlmapper.loader;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.github.yamlmapper.config.FieldConfig;
@@ -10,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,7 +55,7 @@ public class YamlConfigLoader {
    * @return the parsed MappingSchema
    * @throws ConfigurationException if the file cannot be loaded or parsed
    */
-  public MappingSchema load(String path) {
+  public MappingSchema load(final String path) {
     if (path == null || path.isBlank()) {
       throw new ConfigurationException("Path cannot be null or blank");
     }
@@ -76,7 +78,7 @@ public class YamlConfigLoader {
    * @return the parsed MappingSchema
    * @throws ConfigurationException if the stream cannot be parsed
    */
-  public MappingSchema load(InputStream inputStream, String configId) {
+  public MappingSchema load(final InputStream inputStream, final String configId) {
     try {
       YamlSchemaDto dto = yamlMapper.readValue(inputStream, YamlSchemaDto.class);
       return convertToSchema(dto, configId);
@@ -97,7 +99,7 @@ public class YamlConfigLoader {
    * @param configPath the path
    * @return the config ID (filename without extension)
    */
-  public String extractConfigId(String configPath) {
+  public String extractConfigId(final String configPath) {
     String path = configPath;
 
     // Remove classpath prefix
@@ -116,7 +118,7 @@ public class YamlConfigLoader {
     return lastDot > 0 ? filename.substring(0, lastDot) : filename;
   }
 
-  private InputStream openStream(String path) throws IOException {
+  private InputStream openStream(final String path) throws IOException {
     // Handle classpath: prefix
     if (path.startsWith(CLASSPATH_PREFIX)) {
       String resourcePath = path.substring(CLASSPATH_PREFIX.length());
@@ -153,18 +155,18 @@ public class YamlConfigLoader {
 
   }
 
-  private MappingSchema convertToSchema(YamlSchemaDto dto, String configId) {
+  private MappingSchema convertToSchema(final YamlSchemaDto dto, final String configId) {
     if (dto == null) {
       throw new ConfigurationException(configId, "Empty YAML configuration");
     }
 
     Map<String, FieldConfig> fields = new LinkedHashMap<>();
-    extractFields(dto.fields, fields, configId);
+    extractFieldsFromRaw(dto.rawFields, fields, configId);
 
     return new MappingSchema(dto.rootType, Map.copyOf(fields));
   }
 
-  private FieldConfig convertToFieldConfig(String name, YamlFieldDto dto, String configId) {
+  private FieldConfig convertToFieldConfig(final String name, final YamlFieldDto dto, final String configId) {
     if (dto == null) {
       throw new ConfigurationException(configId,
           String.format("Field '%s' has null configuration", name));
@@ -172,7 +174,7 @@ public class YamlConfigLoader {
 
     // Convert nested fields if present
     Map<String, FieldConfig> nestedFields = new LinkedHashMap<>();
-    extractFields(dto.fields, nestedFields, configId);
+    extractFieldsFromRaw(dto.rawFields, nestedFields, configId);
 
     // Normalize source to always be a list
     List<String> sourceList = normalizeSource(dto.source);
@@ -192,22 +194,92 @@ public class YamlConfigLoader {
         nestedFields.isEmpty() ? Map.of() : Map.copyOf(nestedFields),
         dto.required,
         dto.defaultValue,
-        dto.parseEmbeddedJson
+        dto.parseEmbeddedJson,
+        List.of()  // No merge definitions for single field config
     );
   }
 
-  private void extractFields(Map<String, YamlFieldDto> dto, Map<String, FieldConfig> fields, String configId){
-    if (dto != null) {
-      for (Map.Entry<String, YamlFieldDto> entry : dto.entrySet()) {
-        String fieldName = entry.getKey();
-        FieldConfig fieldConfig = convertToFieldConfig(fieldName, entry.getValue(), configId);
-        fields.put(fieldName, fieldConfig);
+  /**
+   * Creates a FieldConfig with merge definitions from an array of field definitions.
+   * The first definition's type is used as the overall type.
+   */
+  private FieldConfig convertToMergeFieldConfig(final String name, final List<YamlFieldDto> definitions, final String configId) {
+    if (definitions == null || definitions.isEmpty()) {
+      throw new ConfigurationException(configId,
+          String.format("Field '%s' has empty merge definitions", name));
+    }
+
+    // Convert each definition to a FieldConfig
+    List<FieldConfig> mergeDefinitions = new ArrayList<>();
+    for (int i = 0; i < definitions.size(); i++) {
+      YamlFieldDto def = definitions.get(i);
+      FieldConfig defConfig = convertToFieldConfig(name + "[" + i + "]", def, configId);
+      mergeDefinitions.add(defConfig);
+    }
+
+    // Use the first definition's type as the overall field type
+    YamlFieldDto firstDef = definitions.get(0);
+
+    return new FieldConfig(
+        name,
+        firstDef.type != null ? firstDef.type : "map",  // Default to map for merge scenarios
+        List.of(),  // No single source - sources are in merge definitions
+        null,
+        firstDef.objectType,
+        firstDef.itemType,
+        null,
+        firstDef.keyType,
+        firstDef.valueType,
+        null,  // No single transform - transforms are in merge definitions
+        Map.of(),
+        Map.of(),
+        false,
+        null,
+        false,
+        List.copyOf(mergeDefinitions)
+    );
+  }
+
+  /**
+   * Extracts fields from raw JSON nodes, detecting array syntax for merge definitions.
+   */
+  @SuppressWarnings("unchecked")
+  private void extractFieldsFromRaw(final Map<String, Object> rawFields, final Map<String, FieldConfig> fields, final String configId) {
+    if (rawFields == null) {
+      return;
+    }
+
+    for (Map.Entry<String, Object> entry : rawFields.entrySet()) {
+      String fieldName = entry.getKey();
+      Object rawValue = entry.getValue();
+
+      FieldConfig fieldConfig;
+
+      if (rawValue instanceof List) {
+        // Array syntax - merge definitions
+        List<Map<String, Object>> definitionsList = (List<Map<String, Object>>) rawValue;
+        List<YamlFieldDto> definitions = new ArrayList<>();
+        for (Map<String, Object> defMap : definitionsList) {
+          YamlFieldDto dto = yamlMapper.convertValue(defMap, YamlFieldDto.class);
+          definitions.add(dto);
+        }
+        fieldConfig = convertToMergeFieldConfig(fieldName, definitions, configId);
+      } else if (rawValue instanceof Map) {
+        // Object syntax - single definition
+        YamlFieldDto dto = yamlMapper.convertValue(rawValue, YamlFieldDto.class);
+        fieldConfig = convertToFieldConfig(fieldName, dto, configId);
+      } else {
+        throw new ConfigurationException(configId,
+            String.format("Field '%s' has invalid configuration type: %s", fieldName,
+                rawValue != null ? rawValue.getClass().getSimpleName() : "null"));
       }
+
+      fields.put(fieldName, fieldConfig);
     }
   }
 
   @SuppressWarnings("unchecked")
-  private List<String> normalizeSource(Object source) {
+  private List<String> normalizeSource(final Object source) {
     if (source == null) {
       return List.of();
     }
@@ -224,10 +296,13 @@ public class YamlConfigLoader {
 
   /**
    * Internal DTO for YAML schema deserialization.
+   * Uses rawFields to detect array syntax for merge definitions.
    */
   static class YamlSchemaDto {
     public String rootType;
-    public Map<String, YamlFieldDto> fields;
+
+    @JsonProperty("fields")
+    public Map<String, Object> rawFields;  // Object to detect array vs object syntax
   }
 
   /**
@@ -245,7 +320,10 @@ public class YamlConfigLoader {
     public String valueType;
     public String transform;
     public Map<String, Object> transformParams;
-    public Map<String, YamlFieldDto> fields;
+
+    @JsonProperty("fields")
+    public Map<String, Object> rawFields;  // Object to detect array vs object syntax
+
     public boolean required;
     public boolean parseEmbeddedJson;
 
