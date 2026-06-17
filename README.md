@@ -282,6 +282,49 @@ facets:
 # Output: {"Price": {"numbers": [56.99]}, "Brand": {"text": ["Nike", "Adidas"]}}
 ```
 
+## Multiple Sources with Merge
+
+A single field can combine data from multiple sources. Instead of the last value overwriting previous ones, all sources are merged together. This is especially useful for maps:
+
+```yaml
+attributes:
+  # First source: Parse "Key:Value|Key:Value" string
+  - type: map
+    source: [facets]
+    objectType: CustomAttribute
+    transform: parseKeyValuePairs
+    transformParams:
+      pairDelimiter: "|"
+      keyValueDelimiter: ":"
+
+  # Second source: metadata fields
+  - type: map
+    source: ["."]
+    objectType: CustomAttribute
+    transform: fieldsToAttributeMap
+    transformParams:
+      fields:
+        - "metadata:brand"
+        - "metadata:category"
+
+  # Third source: facet fields
+  - type: map
+    source: ["."]
+    objectType: CustomAttribute
+    transform: fieldsToAttributeMap
+    transformParams:
+      fields:
+        - "facet:color"
+        - "facet:size"
+```
+
+**Result:** All three sources are merged into a single `attributes` map containing keys from facets string, metadata fields, and facet fields combined.
+
+This pattern works for:
+- **Maps**: Entries from all sources are merged
+- **Arrays**: Elements from all sources are concatenated
+- **Objects**: Fields from all sources are combined
+
 ## Scattered Fields
 
 When your JSON has related data spread across different nodes, use `source: ["."]` to keep the root context:
