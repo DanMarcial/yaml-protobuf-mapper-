@@ -1,5 +1,6 @@
 package io.github.yamlmapper.builder;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.google.protobuf.BoolValue;
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Descriptors.OneofDescriptor;
@@ -9,16 +10,15 @@ import com.google.protobuf.Int32Value;
 import com.google.protobuf.Int64Value;
 import com.google.protobuf.Message;
 import com.google.protobuf.StringValue;
+import io.github.yamlmapper.cache.CacheFactory;
+import io.github.yamlmapper.config.CacheConfig;
 import io.github.yamlmapper.config.CaseConverter;
 import io.github.yamlmapper.exception.MappingException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 /**
  * Resolves and caches MethodHandles for Protobuf builder setter methods.
@@ -49,13 +49,13 @@ public class SetterResolver {
   private static final MethodHandles.Lookup LOOKUP = MethodHandles.publicLookup();
 
   // Cache key: "com.google.cloud.retail.v2.UserEvent$Builder#visitorId"
-  private final ConcurrentMap<String, SetterInfo> setterCache;
+  private final Cache<String, SetterInfo> setterCache;
 
   /**
    * Creates a new SetterResolver.
    */
   public SetterResolver() {
-    this.setterCache = new ConcurrentHashMap<>();
+    this.setterCache = CacheFactory.create(CacheConfig.SETTER_CACHE);
   }
 
   /**
@@ -119,20 +119,17 @@ public class SetterResolver {
 
   private SetterInfo getOrCreateSetterInfo(final Message.Builder builder, final String fieldName) {
     String cacheKey = buildCacheKey(builder.getClass(), fieldName);
-    return setterCache.computeIfAbsent(cacheKey,
-        k -> createSetterInfo(builder, fieldName));
+    return setterCache.get(cacheKey, k -> createSetterInfo(builder, fieldName));
   }
 
   private SetterInfo getOrCreateAdderInfo(final Message.Builder builder, final String fieldName) {
     String cacheKey = buildCacheKey(builder.getClass(), fieldName) + "#add";
-    return setterCache.computeIfAbsent(cacheKey,
-        k -> createAdderInfo(builder, fieldName));
+    return setterCache.get(cacheKey, k -> createAdderInfo(builder, fieldName));
   }
 
   private SetterInfo getOrCreateMapSetterInfo(final Message.Builder builder, final String fieldName) {
     String cacheKey = buildCacheKey(builder.getClass(), fieldName) + "#putAll";
-    return setterCache.computeIfAbsent(cacheKey,
-        k -> createMapSetterInfo(builder, fieldName));
+    return setterCache.get(cacheKey, k -> createMapSetterInfo(builder, fieldName));
   }
 
   private String buildCacheKey(final Class<?> builderClass, final String fieldName) {

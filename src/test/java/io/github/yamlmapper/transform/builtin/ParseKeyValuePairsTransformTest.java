@@ -36,9 +36,8 @@ class ParseKeyValuePairsTransformTest {
   }
 
   private TransformContext createContext(FieldConfig config) {
-    return new TransformContextImpl.Builder()
-        .fieldName("facets")
-        .fieldConfig(config)
+    return TransformContextImpl.builder()
+        .params(config.transformParams())
         .objectMapper(objectMapper)
         .build();
   }

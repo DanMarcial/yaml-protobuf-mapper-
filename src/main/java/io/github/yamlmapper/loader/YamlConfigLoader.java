@@ -12,7 +12,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -160,7 +160,7 @@ public class YamlConfigLoader {
       throw new ConfigurationException(configId, "Empty YAML configuration");
     }
 
-    Map<String, FieldConfig> fields = new LinkedHashMap<>();
+    Map<String, FieldConfig> fields = new HashMap<>();
     extractFieldsFromRaw(dto.rawFields, fields, configId);
 
     return new MappingSchema(dto.rootType, Map.copyOf(fields));
@@ -173,7 +173,7 @@ public class YamlConfigLoader {
     }
 
     // Convert nested fields if present
-    Map<String, FieldConfig> nestedFields = new LinkedHashMap<>();
+    Map<String, FieldConfig> nestedFields = new HashMap<>();
     extractFieldsFromRaw(dto.rawFields, nestedFields, configId);
 
     // Normalize source to always be a list

@@ -52,9 +52,8 @@ class FieldsToAttributeMapTransformTest {
       JsonNode rootNode = objectMapper.readTree(json);
       FieldConfig config = createConfig(List.of("vendor", "tags"));
 
-      TransformContext context = new TransformContextImpl.Builder()
-          .fieldName("attributes")
-          .fieldConfig(config)
+      TransformContext context = TransformContextImpl.builder()
+          .params(config.transformParams())
           .rootNode(rootNode)
           .objectMapper(objectMapper)
           .build();
@@ -91,9 +90,8 @@ class FieldsToAttributeMapTransformTest {
       JsonNode rootNode = objectMapper.readTree(json);
       FieldConfig config = createConfig(List.of("lengths_cm", "heights_cm"));
 
-      TransformContext context = new TransformContextImpl.Builder()
-          .fieldName("attributes")
-          .fieldConfig(config)
+      TransformContext context = TransformContextImpl.builder()
+          .params(config.transformParams())
           .rootNode(rootNode)
           .objectMapper(objectMapper)
           .build();
@@ -125,9 +123,8 @@ class FieldsToAttributeMapTransformTest {
       JsonNode rootNode = objectMapper.readTree(json);
       FieldConfig config = createConfig(List.of("color", "weight_kg"));
 
-      TransformContext context = new TransformContextImpl.Builder()
-          .fieldName("attributes")
-          .fieldConfig(config)
+      TransformContext context = TransformContextImpl.builder()
+          .params(config.transformParams())
           .rootNode(rootNode)
           .objectMapper(objectMapper)
           .build();
@@ -164,9 +161,8 @@ class FieldsToAttributeMapTransformTest {
       JsonNode rootNode = objectMapper.readTree(json);
       FieldConfig config = createConfig(List.of("mixed"));
 
-      TransformContext context = new TransformContextImpl.Builder()
-          .fieldName("attributes")
-          .fieldConfig(config)
+      TransformContext context = TransformContextImpl.builder()
+          .params(config.transformParams())
           .rootNode(rootNode)
           .objectMapper(objectMapper)
           .build();
@@ -197,9 +193,8 @@ class FieldsToAttributeMapTransformTest {
       JsonNode rootNode = objectMapper.readTree(json);
       FieldConfig config = createConfig(List.of("quantities"));
 
-      TransformContext context = new TransformContextImpl.Builder()
-          .fieldName("attributes")
-          .fieldConfig(config)
+      TransformContext context = TransformContextImpl.builder()
+          .params(config.transformParams())
           .rootNode(rootNode)
           .objectMapper(objectMapper)
           .build();
@@ -229,9 +224,8 @@ class FieldsToAttributeMapTransformTest {
       JsonNode rootNode = objectMapper.readTree(json);
       FieldConfig config = createConfig(List.of("vendor", "missing", "nonexistent"));
 
-      TransformContext context = new TransformContextImpl.Builder()
-          .fieldName("attributes")
-          .fieldConfig(config)
+      TransformContext context = TransformContextImpl.builder()
+          .params(config.transformParams())
           .rootNode(rootNode)
           .objectMapper(objectMapper)
           .build();
@@ -260,9 +254,8 @@ class FieldsToAttributeMapTransformTest {
           .transformParams(Map.of())  // No fields
           .build();
 
-      TransformContext context = new TransformContextImpl.Builder()
-          .fieldName("attributes")
-          .fieldConfig(config)
+      TransformContext context = TransformContextImpl.builder()
+          .params(config.transformParams())
           .rootNode(rootNode)
           .objectMapper(objectMapper)
           .build();
@@ -278,9 +271,8 @@ class FieldsToAttributeMapTransformTest {
     void shouldReturnEmptyObjectForNullRootNode() {
       FieldConfig config = createConfig(List.of("vendor"));
 
-      TransformContext context = new TransformContextImpl.Builder()
-          .fieldName("attributes")
-          .fieldConfig(config)
+      TransformContext context = TransformContextImpl.builder()
+          .params(config.transformParams())
           .rootNode(null)
           .objectMapper(objectMapper)
           .build();
@@ -303,9 +295,8 @@ class FieldsToAttributeMapTransformTest {
       JsonNode rootNode = objectMapper.readTree(json);
       FieldConfig config = createConfig(List.of("values"));
 
-      TransformContext context = new TransformContextImpl.Builder()
-          .fieldName("attributes")
-          .fieldConfig(config)
+      TransformContext context = TransformContextImpl.builder()
+          .params(config.transformParams())
           .rootNode(rootNode)
           .objectMapper(objectMapper)
           .build();
@@ -343,9 +334,8 @@ class FieldsToAttributeMapTransformTest {
           "vendor", "lengths_cm", "heights_cm", "color", "weight_kg", "tags", "rating"
       ));
 
-      TransformContext context = new TransformContextImpl.Builder()
-          .fieldName("attributes")
-          .fieldConfig(config)
+      TransformContext context = TransformContextImpl.builder()
+          .params(config.transformParams())
           .rootNode(rootNode)
           .objectMapper(objectMapper)
           .build();
@@ -399,9 +389,8 @@ class FieldsToAttributeMapTransformTest {
           "variations:facet:PTC_OMNI_BRAND_SUB_BRND"
       ));
 
-      TransformContext context = new TransformContextImpl.Builder()
-          .fieldName("attributes")
-          .fieldConfig(config)
+      TransformContext context = TransformContextImpl.builder()
+          .params(config.transformParams())
           .rootNode(rootNode)
           .objectMapper(objectMapper)
           .build();
@@ -441,9 +430,8 @@ class FieldsToAttributeMapTransformTest {
           "details:dimensions:width"
       ));
 
-      TransformContext context = new TransformContextImpl.Builder()
-          .fieldName("attributes")
-          .fieldConfig(config)
+      TransformContext context = TransformContextImpl.builder()
+          .params(config.transformParams())
           .rootNode(rootNode)
           .objectMapper(objectMapper)
           .build();
@@ -478,9 +466,8 @@ class FieldsToAttributeMapTransformTest {
           "nonexistent:path:deep"
       ));
 
-      TransformContext context = new TransformContextImpl.Builder()
-          .fieldName("attributes")
-          .fieldConfig(config)
+      TransformContext context = TransformContextImpl.builder()
+          .params(config.transformParams())
           .rootNode(rootNode)
           .objectMapper(objectMapper)
           .build();

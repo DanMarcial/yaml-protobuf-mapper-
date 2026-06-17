@@ -7,6 +7,7 @@ import io.github.yamlmapper.transform.TransformContext;
 
 import static io.github.yamlmapper.config.TypeConstants.DEFAULT_TRUNCATE_LENGTH;
 import static io.github.yamlmapper.transform.TransformParams.PARAM_MAX_LENGTH;
+import static io.github.yamlmapper.transform.TransformParams.PARAM_SUFFIX;
 
 /**
  * Truncates a string to a maximum length.
@@ -48,7 +49,7 @@ public class TruncateTransform implements Transform {
     }
 
     int maxLength = context.getParamAsInt(PARAM_MAX_LENGTH, DEFAULT_TRUNCATE_LENGTH);
-    String suffix = context.getParam("suffix", "");
+    String suffix = context.getParam(PARAM_SUFFIX, "");
 
     String text = node.asText();
     if (text.length() <= maxLength) {

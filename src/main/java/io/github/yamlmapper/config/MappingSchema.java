@@ -52,7 +52,7 @@ public record MappingSchema(
    */
   public static class Builder {
     private String rootType;
-    private final Map<String, FieldConfig> fields = new java.util.LinkedHashMap<>();
+    private final Map<String, FieldConfig> fields = new java.util.HashMap<>();
 
     private Builder() {}
 

@@ -216,22 +216,10 @@ public class SchemaValidator {
   }
 
   private void validateMapField(String fieldName, FieldConfig config, ValidationResult.Builder result) {
-    if (config.keyType() == null || config.keyType().isBlank()) {
-      result.addError(String.format("Field '%s': type 'map' requires 'keyType'", fieldName));
-    } else if (!STRING.equals(config.keyType())) {
-      result.addError(String.format("Field '%s': map keyType '%s' is not supported. Only 'string' keys are currently supported.", fieldName, config.keyType()));
-    }
-
-    if (config.valueType() == null || config.valueType().isBlank()) {
-      result.addError(String.format("Field '%s': type 'map' requires 'valueType'", fieldName));
-    } else if (OBJECT.equals(config.valueType())) {
-      if (config.objectType() == null || config.objectType().isBlank()) {
-        result.addError(String.format("Field '%s': map with valueType 'object' requires 'objectType'", fieldName));
-      } else if (!typeResolver.canResolve(config.objectType())) {
-        result.addError(String.format("Field '%s': objectType '%s' cannot be resolved", fieldName, config.objectType()));
-      } else if (config.fields() == null || config.fields().isEmpty()) {
-        result.addError(String.format("Field '%s': map with valueType 'object' requires 'fields' mapping", fieldName));
-      }
+    if (config.objectType() == null || config.objectType().isBlank()) {
+      result.addError(String.format("Field '%s': type 'map' requires 'objectType'", fieldName));
+    } else if (!typeResolver.canResolve(config.objectType())) {
+      result.addError(String.format("Field '%s': objectType '%s' cannot be resolved", fieldName, config.objectType()));
     }
   }
 

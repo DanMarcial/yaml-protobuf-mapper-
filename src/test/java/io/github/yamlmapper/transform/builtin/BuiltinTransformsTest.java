@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import io.github.yamlmapper.config.FieldConfig;
 import io.github.yamlmapper.transform.Transform;
 import io.github.yamlmapper.transform.TransformContext;
 import io.github.yamlmapper.transform.TransformContextImpl;
@@ -36,18 +35,15 @@ class BuiltinTransformsTest {
   }
 
   private TransformContext contextWithParams(Map<String, Object> params) {
-    FieldConfig config = FieldConfig.builder("test")
-        .transformParams(params)
-        .build();
     return TransformContextImpl.builder()
-        .fieldConfig(config)
+        .params(params)
         .objectMapper(mapper)
         .build();
   }
 
   private TransformContext emptyContext() {
     return TransformContextImpl.builder()
-        .fieldConfig(FieldConfig.builder("test").build())
+        .params(Map.of())
         .objectMapper(mapper)
         .build();
   }

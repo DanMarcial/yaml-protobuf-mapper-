@@ -9,8 +9,6 @@ fields:
   attributes:
     type: map
     source: [.]
-    keyType: string
-    valueType: object
     objectType: CustomAttribute
     transform: fieldsToAttributeMap
     transformParams:
@@ -19,12 +17,3 @@ fields:
         - items:keywords
         - variations:facet:availability
         - variations:facet:PTC_OMNI_BRAND_SUB_BRND
-    fields:
-      text:
-        type: array
-        itemType: string
-        source: [text]
-      numbers:
-        type: array
-        itemType: double
-        source: [numbers]

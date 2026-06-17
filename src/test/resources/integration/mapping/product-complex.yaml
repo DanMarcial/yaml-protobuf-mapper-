@@ -172,28 +172,15 @@ fields:
     # First source: Parse facets string "Key:Value|Key:Value"
     - type: map
       source: [facets]
-      keyType: string
-      valueType: object
       objectType: CustomAttribute
       transform: parseKeyValuePairs
       transformParams:
         pairDelimiter: "|"
         keyValueDelimiter: ":"
-      fields:
-        text:
-          type: array
-          itemType: string
-          source: [text]
-        numbers:
-          type: array
-          itemType: double
-          source: [numbers]
 
     # Second source: metadata:* fields with literal colon names
     - type: map
       source: ["."]
-      keyType: string
-      valueType: object
       objectType: CustomAttribute
       transform: fieldsToAttributeMap
       transformParams:
@@ -203,21 +190,10 @@ fields:
           - "metadata:PTC_OMNI_SUBCATEGORY"
           - "metadata:list_price"
           - "metadata:sale_price"
-      fields:
-        text:
-          type: array
-          itemType: string
-          source: [text]
-        numbers:
-          type: array
-          itemType: double
-          source: [numbers]
 
     # Third source: facet:* fields
     - type: map
       source: ["."]
-      keyType: string
-      valueType: object
       objectType: CustomAttribute
       transform: fieldsToAttributeMap
       transformParams:
@@ -225,12 +201,3 @@ fields:
           - "facet:display_type"
           - "facet:resolution"
           - "facet:refresh_rate"
-      fields:
-        text:
-          type: array
-          itemType: string
-          source: [text]
-        numbers:
-          type: array
-          itemType: double
-          source: [numbers]

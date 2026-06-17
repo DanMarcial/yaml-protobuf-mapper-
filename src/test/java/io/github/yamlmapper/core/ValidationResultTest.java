@@ -358,80 +358,12 @@ class ValidationResultTest {
     }
 
     @Test
-    @DisplayName("should throw at build time when map type is missing keyType")
-    void shouldThrowWhenMapTypeMissingKeyType() {
+    @DisplayName("should throw at build time when map is missing objectType")
+    void shouldThrowWhenMapMissingObjectType() {
       FieldConfig mapField = FieldConfig.builder("attributes")
           .type("map")
           .source(List.of("attrs"))
-          .keyType(null)  // Missing keyType
-          .valueType("string")
-          .build();
-
-      MappingSchema schema = MappingSchema.builder()
-          .field("attributes", mapField)
-          .build();
-
-      assertThatThrownBy(() -> MappingEngine.builder()
-          .withProtobufPackage("com.google.cloud.retail.v2")
-          .withSchema("test-config", schema)
-          .build())
-          .isInstanceOf(ConfigurationException.class)
-          .hasMessageContaining("requires 'keyType'");
-    }
-
-    @Test
-    @DisplayName("should throw at build time when map type is missing valueType")
-    void shouldThrowWhenMapTypeMissingValueType() {
-      FieldConfig mapField = FieldConfig.builder("attributes")
-          .type("map")
-          .source(List.of("attrs"))
-          .keyType("string")
-          .valueType(null)  // Missing valueType
-          .build();
-
-      MappingSchema schema = MappingSchema.builder()
-          .field("attributes", mapField)
-          .build();
-
-      assertThatThrownBy(() -> MappingEngine.builder()
-          .withProtobufPackage("com.google.cloud.retail.v2")
-          .withSchema("test-config", schema)
-          .build())
-          .isInstanceOf(ConfigurationException.class)
-          .hasMessageContaining("requires 'valueType'");
-    }
-
-    @Test
-    @DisplayName("should throw at build time when map keyType is not string")
-    void shouldThrowWhenMapKeyTypeNotString() {
-      FieldConfig mapField = FieldConfig.builder("attributes")
-          .type("map")
-          .source(List.of("attrs"))
-          .keyType("int32")  // Non-string keyType
-          .valueType("string")
-          .build();
-
-      MappingSchema schema = MappingSchema.builder()
-          .field("attributes", mapField)
-          .build();
-
-      assertThatThrownBy(() -> MappingEngine.builder()
-          .withProtobufPackage("com.google.cloud.retail.v2")
-          .withSchema("test-config", schema)
-          .build())
-          .isInstanceOf(ConfigurationException.class)
-          .hasMessageContaining("not supported");
-    }
-
-    @Test
-    @DisplayName("should throw at build time when map with object value is missing objectType")
-    void shouldThrowWhenMapObjectValueMissingObjectType() {
-      FieldConfig mapField = FieldConfig.builder("attributes")
-          .type("map")
-          .source(List.of("attrs"))
-          .keyType("string")
-          .valueType("object")
-          .objectType(null)  // Missing objectType for object value
+          .objectType(null)  // Missing objectType
           .build();
 
       MappingSchema schema = MappingSchema.builder()
@@ -447,41 +379,16 @@ class ValidationResultTest {
     }
 
     @Test
-    @DisplayName("should throw at build time when map with object value is missing fields")
-    void shouldThrowWhenMapObjectValueMissingFields() {
+    @DisplayName("should accept valid map with objectType")
+    void shouldAcceptValidMapWithObjectType() {
       FieldConfig mapField = FieldConfig.builder("attributes")
           .type("map")
           .source(List.of("attrs"))
-          .keyType("string")
-          .valueType("object")
-          .objectType("Product")
-          .fields(Map.of())  // Missing fields for object value
+          .objectType("CustomAttribute")
           .build();
 
       MappingSchema schema = MappingSchema.builder()
           .field("attributes", mapField)
-          .build();
-
-      assertThatThrownBy(() -> MappingEngine.builder()
-          .withProtobufPackage("com.google.cloud.retail.v2")
-          .withSchema("test-config", schema)
-          .build())
-          .isInstanceOf(ConfigurationException.class)
-          .hasMessageContaining("requires 'fields' mapping");
-    }
-
-    @Test
-    @DisplayName("should accept valid map with string key and primitive value")
-    void shouldAcceptValidMapWithPrimitiveValue() {
-      FieldConfig mapField = FieldConfig.builder("tags")
-          .type("map")
-          .source(List.of("tags"))
-          .keyType("string")
-          .valueType("string")
-          .build();
-
-      MappingSchema schema = MappingSchema.builder()
-          .field("tags", mapField)
           .build();
 
       MappingEngine testEngine = MappingEngine.builder()

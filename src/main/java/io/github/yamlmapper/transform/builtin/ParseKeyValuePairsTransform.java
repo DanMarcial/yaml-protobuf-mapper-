@@ -7,7 +7,7 @@ import io.github.yamlmapper.transform.Transform;
 import io.github.yamlmapper.transform.TransformContext;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -110,7 +110,7 @@ public class ParseKeyValuePairsTransform implements Transform {
    * Parses the text and groups values by key.
    */
   private Map<String, List<String>> parseAndGroup(String text, String pairDelimiter, String kvDelimiter) {
-    Map<String, List<String>> grouped = new LinkedHashMap<>();
+    Map<String, List<String>> grouped = new HashMap<>();
 
     // Split by pair delimiter (escape regex special chars)
     String[] pairs = text.split(escapeRegex(pairDelimiter));

@@ -1,5 +1,9 @@
 package io.github.yamlmapper.transform.builtin;
 
+import static io.github.yamlmapper.transform.TransformParams.PARAM_DEFAULT_HEIGHT;
+import static io.github.yamlmapper.transform.TransformParams.PARAM_DEFAULT_WIDTH;
+import static io.github.yamlmapper.transform.TransformParams.PARAM_URI_FIELD;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -55,9 +59,9 @@ public class StringsToImagesTransform implements Transform {
       return context.getObjectMapper().createArrayNode();
     }
 
-    String uriField = context.getParam("uriField", "uri");
-    int defaultWidth = context.getParamAsInt("defaultWidth", 0);
-    int defaultHeight = context.getParamAsInt("defaultHeight", 0);
+    String uriField = context.getParam(PARAM_URI_FIELD, "uri");
+    int defaultWidth = context.getParamAsInt(PARAM_DEFAULT_WIDTH, 0);
+    int defaultHeight = context.getParamAsInt(PARAM_DEFAULT_HEIGHT, 0);
 
     ArrayNode result = context.getObjectMapper().createArrayNode();
 

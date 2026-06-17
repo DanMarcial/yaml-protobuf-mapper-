@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -383,9 +383,9 @@ public class MappingEngine {
    */
   public static class Builder {
     private final List<String> packagePrefixes = new ArrayList<>();
-    private final Map<String, MappingSchema> configCache = new LinkedHashMap<>();
+    private final Map<String, MappingSchema> configCache = new HashMap<>();
     private final TransformRegistry transformRegistry = new TransformRegistry();
-    private final Map<String, ProtobufConstraints> customValidationSchemas = new LinkedHashMap<>();
+    private final Map<String, ProtobufConstraints> customValidationSchemas = new HashMap<>();
     private ObjectMapper objectMapper = new ObjectMapper();
     private boolean injectEventType = true;
     private boolean registerBuiltinTransforms = true;

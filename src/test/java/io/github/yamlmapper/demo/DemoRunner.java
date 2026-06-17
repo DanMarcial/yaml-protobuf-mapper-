@@ -348,8 +348,7 @@ public class DemoRunner {
                 .transformParams(Map.of("delimiter", ","))
                 .build();
         TransformContextImpl splitCtx = TransformContextImpl.builder()
-                .fieldName("categories")
-                .fieldConfig(splitConfig)
+                .params(splitConfig.transformParams())
                 .objectMapper(MAPPER)
                 .build();
 
@@ -386,8 +385,7 @@ public class DemoRunner {
                 ))
                 .build();
         TransformContextImpl mapCtx = TransformContextImpl.builder()
-                .fieldName("availability")
-                .fieldConfig(mapConfig)
+                .params(mapConfig.transformParams())
                 .objectMapper(MAPPER)
                 .build();
 
@@ -414,8 +412,7 @@ public class DemoRunner {
                 .transformParams(Map.of("maxLength", 30))
                 .build();
         TransformContextImpl truncateCtx = TransformContextImpl.builder()
-                .fieldName("title")
-                .fieldConfig(truncateConfig)
+                .params(truncateConfig.transformParams())
                 .objectMapper(MAPPER)
                 .build();
 
@@ -443,8 +440,7 @@ public class DemoRunner {
                 .transformParams(Map.of("from", "_", "to", "-"))
                 .build();
         TransformContextImpl replaceCtx = TransformContextImpl.builder()
-                .fieldName("languageCode")
-                .fieldConfig(replaceConfig)
+                .params(replaceConfig.transformParams())
                 .objectMapper(MAPPER)
                 .build();
 

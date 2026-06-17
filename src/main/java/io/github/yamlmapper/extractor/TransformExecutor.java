@@ -37,10 +37,9 @@ public class TransformExecutor {
         log.debug("Applying transform '{}' to field '{}'", config.transform(), config.name());
 
         TransformContext context = new TransformContextImpl(
-                config.name(),
-                config,
                 rootNode,
-                objectMapper
+                objectMapper,
+                config.transformParams()
         );
 
         return transform.apply(node, context);

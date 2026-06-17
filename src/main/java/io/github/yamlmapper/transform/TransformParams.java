@@ -42,6 +42,9 @@ public final class TransformParams {
     /** Maximum length for truncation. */
     public static final String PARAM_MAX_LENGTH = "maxLength";
 
+    /** Suffix to add after truncation. */
+    public static final String PARAM_SUFFIX = "suffix";
+
     // ============================================
     // ZipArrays transform parameters
     // ============================================

@@ -1,12 +1,13 @@
 package io.github.yamlmapper.builder;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.google.protobuf.Message;
+import io.github.yamlmapper.cache.CacheFactory;
+import io.github.yamlmapper.config.CacheConfig;
 import io.github.yamlmapper.exception.MappingException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 /**
  * Factory for creating Protobuf message builders using MethodHandles.
@@ -27,13 +28,13 @@ public class BuilderFactory {
 
   private static final MethodHandles.Lookup LOOKUP = MethodHandles.publicLookup();
 
-  private final ConcurrentMap<Class<?>, MethodHandle> builderHandles;
+  private final Cache<Class<?>, MethodHandle> builderHandles;
 
   /**
    * Creates a new BuilderFactory.
    */
   public BuilderFactory() {
-    this.builderHandles = new ConcurrentHashMap<>();
+    this.builderHandles = CacheFactory.create(CacheConfig.BUILDER_CACHE);
   }
 
   /**
@@ -95,7 +96,7 @@ public class BuilderFactory {
   }
 
   private MethodHandle getOrCreateHandle(Class<?> messageClass) {
-    return builderHandles.computeIfAbsent(messageClass, this::createHandle);
+    return builderHandles.get(messageClass, this::createHandle);
   }
 
   private MethodHandle createHandle(Class<?> messageClass) {

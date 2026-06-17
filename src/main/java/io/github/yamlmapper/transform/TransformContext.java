@@ -2,7 +2,7 @@ package io.github.yamlmapper.transform;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.yamlmapper.config.FieldConfig;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -10,8 +10,6 @@ import java.util.Map;
  *
  * <p>Provides access to:
  * <ul>
- *   <li>The current field being processed</li>
- *   <li>The field configuration from YAML</li>
  *   <li>The complete root JSON for accessing other fields</li>
  *   <li>Transform parameters from YAML configuration</li>
  *   <li>ObjectMapper for JSON operations</li>
@@ -27,28 +25,11 @@ import java.util.Map;
  *     JsonNode root = context.getRootNode();
  *     JsonNode otherField = root.get("someOtherField");
  *
- *     // Access current field info
- *     String fieldName = context.getFieldName();
- *
  *     // Perform transformation...
  * }
  * }</pre>
  */
 public interface TransformContext {
-
-  /**
-   * Gets the name of the field currently being processed.
-   *
-   * @return the field name as defined in the YAML configuration
-   */
-  String getFieldName();
-
-  /**
-   * Gets the configuration for the current field.
-   *
-   * @return the field configuration, or null if not available
-   */
-  FieldConfig getFieldConfig();
 
   /**
    * Gets the complete root JSON node.
@@ -159,5 +140,5 @@ public interface TransformContext {
    * @param name the parameter name
    * @return the parameter as a List, or empty list if not defined/invalid
    */
-  java.util.List<String> getParamAsList(String name);
+  List<String> getParamAsList(String name);
 }

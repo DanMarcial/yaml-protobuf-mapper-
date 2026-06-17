@@ -60,9 +60,8 @@ class ZipArraysTransformTest {
           "merge", Map.of("qty", "quantities", "unitPrice", "prices")
       ));
 
-      TransformContext context = new TransformContextImpl.Builder()
-          .fieldName("productDetails")
-          .fieldConfig(config)
+      TransformContext context = TransformContextImpl.builder()
+          .params(config.transformParams())
           .rootNode(rootNode)
           .objectMapper(objectMapper)
           .build();
@@ -109,9 +108,8 @@ class ZipArraysTransformTest {
           "merge", Map.of("qty", "quantities")
       ));
 
-      TransformContext context = new TransformContextImpl.Builder()
-          .fieldName("productDetails")
-          .fieldConfig(config)
+      TransformContext context = TransformContextImpl.builder()
+          .params(config.transformParams())
           .rootNode(rootNode)
           .objectMapper(objectMapper)
           .build();
@@ -158,9 +156,8 @@ class ZipArraysTransformTest {
           "merge", Map.of("discount", "discounts", "stockCount", "stock")
       ));
 
-      TransformContext context = new TransformContextImpl.Builder()
-          .fieldName("productDetails")
-          .fieldConfig(config)
+      TransformContext context = TransformContextImpl.builder()
+          .params(config.transformParams())
           .rootNode(rootNode)
           .objectMapper(objectMapper)
           .build();
@@ -204,9 +201,8 @@ class ZipArraysTransformTest {
           "merge", Map.of("discount", "discounts")
       ));
 
-      TransformContext context = new TransformContextImpl.Builder()
-          .fieldName("productDetails")
-          .fieldConfig(config)
+      TransformContext context = TransformContextImpl.builder()
+          .params(config.transformParams())
           .rootNode(rootNode)
           .objectMapper(objectMapper)
           .build();
@@ -244,9 +240,8 @@ class ZipArraysTransformTest {
           "merge", Map.of("stock", "metadata.inventory.counts")
       ));
 
-      TransformContext context = new TransformContextImpl.Builder()
-          .fieldName("productDetails")
-          .fieldConfig(config)
+      TransformContext context = TransformContextImpl.builder()
+          .params(config.transformParams())
           .rootNode(rootNode)
           .objectMapper(objectMapper)
           .build();
@@ -269,8 +264,8 @@ class ZipArraysTransformTest {
           "merge", Map.of("qty", "quantities")
       ));
 
-      TransformContext context = new TransformContextImpl.Builder()
-          .fieldConfig(config)
+      TransformContext context = TransformContextImpl.builder()
+          .params(config.transformParams())
           .objectMapper(objectMapper)
           .build();
 
@@ -299,8 +294,8 @@ class ZipArraysTransformTest {
           .transformParams(Map.of())  // No merge params
           .build();
 
-      TransformContext context = new TransformContextImpl.Builder()
-          .fieldConfig(config)
+      TransformContext context = TransformContextImpl.builder()
+          .params(config.transformParams())
           .rootNode(rootNode)
           .objectMapper(objectMapper)
           .build();

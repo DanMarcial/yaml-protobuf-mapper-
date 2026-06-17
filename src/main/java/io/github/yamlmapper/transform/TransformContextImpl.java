@@ -2,11 +2,10 @@ package io.github.yamlmapper.transform;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.yamlmapper.config.FieldConfig;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -15,7 +14,7 @@ import java.util.Map;
  *
  * <p>Provides transforms with access to:
  * <ul>
- *   <li>Current field configuration and parameters</li>
+ *   <li>Transform parameters from YAML configuration</li>
  *   <li>Root JSON document for cross-field access</li>
  *   <li>Shared ObjectMapper for JSON operations</li>
  * </ul>
@@ -24,8 +23,6 @@ import java.util.Map;
  */
 public class TransformContextImpl implements TransformContext {
 
-  private final String fieldName;
-  private final FieldConfig fieldConfig;
   private final JsonNode rootNode;
   private final ObjectMapper objectMapper;
   private final Map<String, Object> params;
@@ -33,33 +30,17 @@ public class TransformContextImpl implements TransformContext {
   /**
    * Creates a new TransformContextImpl.
    *
-   * @param fieldName the current field name
-   * @param fieldConfig the field configuration
    * @param rootNode the root JSON node
    * @param objectMapper the shared ObjectMapper
+   * @param params the transform parameters
    */
   public TransformContextImpl(
-      String fieldName,
-      FieldConfig fieldConfig,
-      JsonNode rootNode,
-      ObjectMapper objectMapper) {
-    this.fieldName = fieldName;
-    this.fieldConfig = fieldConfig;
+      final JsonNode rootNode,
+      final ObjectMapper objectMapper,
+      final Map<String, Object> params) {
     this.rootNode = rootNode;
     this.objectMapper = objectMapper;
-    this.params = fieldConfig != null && fieldConfig.transformParams() != null
-        ? Map.copyOf(fieldConfig.transformParams())
-        : Map.of();
-  }
-
-  @Override
-  public String getFieldName() {
-    return fieldName;
-  }
-
-  @Override
-  public FieldConfig getFieldConfig() {
-    return fieldConfig;
+    this.params = params != null ? Map.copyOf(params) : Map.of();
   }
 
   @Override
@@ -138,7 +119,7 @@ public class TransformContextImpl implements TransformContext {
     }
     if (value instanceof Map) {
       Map<?, ?> rawMap = (Map<?, ?>) value;
-      Map<String, String> result = new LinkedHashMap<>();
+      Map<String, String> result = new HashMap<>();
       for (Map.Entry<?, ?> entry : rawMap.entrySet()) {
         String key = entry.getKey() != null ? entry.getKey().toString() : null;
         String val = entry.getValue() != null ? entry.getValue().toString() : null;
@@ -175,33 +156,27 @@ public class TransformContextImpl implements TransformContext {
    * Builder for TransformContextImpl.
    */
   public static class Builder {
-    private String fieldName;
-    private FieldConfig fieldConfig;
     private JsonNode rootNode;
     private ObjectMapper objectMapper;
+    private Map<String, Object> params;
 
-    public Builder fieldName(String fieldName) {
-      this.fieldName = fieldName;
-      return this;
-    }
-
-    public Builder fieldConfig(FieldConfig fieldConfig) {
-      this.fieldConfig = fieldConfig;
-      return this;
-    }
-
-    public Builder rootNode(JsonNode rootNode) {
+    public Builder rootNode(final JsonNode rootNode) {
       this.rootNode = rootNode;
       return this;
     }
 
-    public Builder objectMapper(ObjectMapper objectMapper) {
+    public Builder objectMapper(final ObjectMapper objectMapper) {
       this.objectMapper = objectMapper;
       return this;
     }
 
+    public Builder params(final Map<String, Object> params) {
+      this.params = params;
+      return this;
+    }
+
     public TransformContextImpl build() {
-      return new TransformContextImpl(fieldName, fieldConfig, rootNode, objectMapper);
+      return new TransformContextImpl(rootNode, objectMapper, params);
     }
   }
 

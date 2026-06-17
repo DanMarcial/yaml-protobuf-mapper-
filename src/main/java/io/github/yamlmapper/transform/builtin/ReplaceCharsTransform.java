@@ -1,5 +1,8 @@
 package io.github.yamlmapper.transform.builtin;
 
+import static io.github.yamlmapper.transform.TransformParams.PARAM_FROM;
+import static io.github.yamlmapper.transform.TransformParams.PARAM_TO;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.github.yamlmapper.transform.Transform;
@@ -46,8 +49,8 @@ public class ReplaceCharsTransform implements Transform {
       return input;
     }
 
-    String from = context.getParam("from", "");
-    String to = context.getParam("to", "");
+    String from = context.getParam(PARAM_FROM, "");
+    String to = context.getParam(PARAM_TO, "");
     boolean useRegex = context.getParamAsBoolean("regex", false);
 
     if (from.isEmpty()) {

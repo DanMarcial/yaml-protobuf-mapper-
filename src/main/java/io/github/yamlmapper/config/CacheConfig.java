@@ -63,6 +63,30 @@ public record CacheConfig(
   );
 
   /**
+   * Cache configuration for setter/method handle resolution.
+   * - Maximum 2,000 entries (fields per message type)
+   * - No expiration (method handles don't change at runtime)
+   */
+  public static final CacheConfig SETTER_CACHE = new CacheConfig(
+      2_000,
+      null,
+      null,
+      false
+  );
+
+  /**
+   * Cache configuration for builder factory handles.
+   * - Maximum 500 entries (limited number of message types)
+   * - No expiration (builders don't change at runtime)
+   */
+  public static final CacheConfig BUILDER_CACHE = new CacheConfig(
+      500,
+      null,
+      null,
+      false
+  );
+
+  /**
    * Cache configuration for development/debugging.
    * - Stats recording enabled
    * - Smaller size for faster iteration

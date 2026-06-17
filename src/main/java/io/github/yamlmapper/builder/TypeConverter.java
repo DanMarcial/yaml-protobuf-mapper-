@@ -5,13 +5,12 @@ import com.google.protobuf.Timestamp;
 import io.github.yamlmapper.exception.MappingException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static io.github.yamlmapper.config.TypeConstants.FORMAT_ISO8601;
 import static io.github.yamlmapper.config.TypeConstants.FORMAT_UNIX_MILLIS;
@@ -22,7 +21,6 @@ import static io.github.yamlmapper.config.TypeConstants.NANOS_PER_MILLI;
  * Converts JsonNode values into Java and Protobuf types.
  *
  * <p>Uses direct class comparison instead of Map lookup for better JIT optimization.
- * Benchmark shows ~30% improvement for high-frequency conversions.
  *
  * <p>This class is stateless and thread-safe.
  */
@@ -38,6 +36,7 @@ public class TypeConverter {
    * @param targetType the target type
    * @param <T> generic target type
    * @return converted value or null
+   * @throws MappingException if conversion fails or type is not supported
    */
   @SuppressWarnings("unchecked")
   public <T> T convert(final JsonNode node, final Class<T> targetType) {

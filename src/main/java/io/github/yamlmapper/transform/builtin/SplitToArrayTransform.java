@@ -1,5 +1,7 @@
 package io.github.yamlmapper.transform.builtin;
 
+import static io.github.yamlmapper.transform.TransformParams.PARAM_DELIMITER;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.github.yamlmapper.transform.Transform;
@@ -48,7 +50,7 @@ public class SplitToArrayTransform implements Transform {
       return context.getObjectMapper().createArrayNode();
     }
 
-    String delimiter = context.getParam("delimiter", DEFAULT_DELIMITER);
+    String delimiter = context.getParam(PARAM_DELIMITER, DEFAULT_DELIMITER);
     boolean trim = context.getParamAsBoolean("trim", true);
 
     ArrayNode result = context.getObjectMapper().createArrayNode();

@@ -15,7 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -90,7 +90,7 @@ public class GenericProtobufBuilder {
             final Map<String, FieldConfig> fields) {
 
         // Track which oneof groups have been set (oneofName -> fieldName that set it)
-        Map<String, String> setOneofs = new LinkedHashMap<>();
+        Map<String, String> setOneofs = new HashMap<>();
 
         for (Map.Entry<String, FieldConfig> entry : fields.entrySet()) {
             final String fieldName = entry.getKey();
@@ -151,46 +151,31 @@ public class GenericProtobufBuilder {
 
         return switch (type) {
             case STRING -> defaultValue.toString();
-            case INT32 -> convertToInt(defaultValue);
-            case INT64 -> convertToLong(defaultValue);
-            case FLOAT -> convertToFloat(defaultValue);
-            case DOUBLE -> convertToDouble(defaultValue);
-            case BOOLEAN -> convertToBoolean(defaultValue);
+            case INT32 -> toNumber(defaultValue, Number::intValue, Integer::parseInt);
+            case INT64 -> toNumber(defaultValue, Number::longValue, Long::parseLong);
+            case FLOAT -> toNumber(defaultValue, Number::floatValue, Float::parseFloat);
+            case DOUBLE -> toNumber(defaultValue, Number::doubleValue, Double::parseDouble);
+            case BOOLEAN -> toBoolean(defaultValue);
             default -> defaultValue;
         };
     }
 
-    private Integer convertToInt(final Object value) {
-        if (value instanceof Number) {
-            return ((Number) value).intValue();
+    /**
+     * Converts an Object to a Number type using the appropriate converter.
+     */
+    private <T extends Number> T toNumber(
+            final Object value,
+            final java.util.function.Function<Number, T> fromNumber,
+            final java.util.function.Function<String, T> fromString) {
+        if (value instanceof Number number) {
+            return fromNumber.apply(number);
         }
-        return Integer.parseInt(value.toString());
+        return fromString.apply(value.toString());
     }
 
-    private Long convertToLong(final Object value) {
-        if (value instanceof Number) {
-            return ((Number) value).longValue();
-        }
-        return Long.parseLong(value.toString());
-    }
-
-    private Float convertToFloat(final Object value) {
-        if (value instanceof Number) {
-            return ((Number) value).floatValue();
-        }
-        return Float.parseFloat(value.toString());
-    }
-
-    private Double convertToDouble(final Object value) {
-        if (value instanceof Number) {
-            return ((Number) value).doubleValue();
-        }
-        return Double.parseDouble(value.toString());
-    }
-
-    private Boolean convertToBoolean(final Object value) {
-        if (value instanceof Boolean) {
-            return (Boolean) value;
+    private Boolean toBoolean(final Object value) {
+        if (value instanceof Boolean bool) {
+            return bool;
         }
         return Boolean.parseBoolean(value.toString());
     }
@@ -267,7 +252,7 @@ public class GenericProtobufBuilder {
 
         if (MAP.equals(type)) {
             // Merge maps: combine all entries from each definition
-            Map<String, Object> mergedMap = new LinkedHashMap<>();
+            Map<String, Object> mergedMap = new HashMap<>();
 
             for (FieldConfig definition : config.mergeDefinitions()) {
                 Object result = buildField(jsonNode, definition);
@@ -489,23 +474,12 @@ public class GenericProtobufBuilder {
     /**
      * Builds a Protobuf map field from JSON.
      *
-     * <p>Supports multiple value types:
-     * <ul>
-     *   <li>Primitive types: string, int32, int64, float, double, boolean</li>
-     *   <li>Object types: nested Protobuf messages (requires fields configuration)</li>
-     * </ul>
-     *
-     * <p>Example YAML configuration:
-     * <pre>{@code
-     * attributes:
-     *   type: map
-     *   source: customAttributes
-     *   keyType: string
-     *   valueType: string
-     * }</pre>
+     * <p>The JSON is expected to already have the correct structure from the transform.
+     * For object values, the JSON fields are mapped directly to the Protobuf message
+     * using the field descriptors.
      *
      * @param jsonNode the source JSON
-     * @param config the field configuration with keyType and valueType
+     * @param config the field configuration with objectType
      * @return a Map suitable for Protobuf putAll, or null if not found
      */
     private Map<?, ?> buildMap(final JsonNode jsonNode, final FieldConfig config) {
@@ -515,31 +489,27 @@ public class GenericProtobufBuilder {
         }
 
         final JsonNode mapNode = extractedOpt.get();
-        final String keyType = config.keyType();
-        final String valueType = config.valueType();
+        final String objectType = config.objectType();
 
-        if (keyType == null || valueType == null) {
-            throw new MappingException(
-                    "Field type 'map' requires both 'keyType' and 'valueType' to be specified");
+        if (objectType == null) {
+            throw new MappingException("Map requires 'objectType' to be specified");
         }
 
-        // Currently only string keys are supported (Protobuf limitation for most cases)
-        if (!STRING.equals(keyType)) {
-            throw new MappingException(
-                    String.format("Map keyType '%s' is not supported. Only 'string' keys are currently supported.", keyType));
-        }
+        final Class<? extends Message> messageClass = typeResolver.resolveMessage(objectType);
+        Map<String, Message> result = new HashMap<>();
 
-        Map<String, Object> result = new LinkedHashMap<>();
-        var fields = mapNode.fields();
+        var entries = mapNode.fields();
 
-        while (fields.hasNext()) {
-            var entry = fields.next();
+        while (entries.hasNext()) {
+            var entry = entries.next();
             String key = entry.getKey();
             JsonNode valueNode = entry.getValue();
 
-            Object value = convertMapValue(valueNode, valueType, config);
-            if (value != null) {
-                result.put(key, value);
+            if (valueNode != null && valueNode.isObject()) {
+                Message message = jsonToMessage(valueNode, messageClass);
+                if (message != null) {
+                    result.put(key, message);
+                }
             }
         }
 
@@ -547,46 +517,77 @@ public class GenericProtobufBuilder {
     }
 
     /**
-     * Converts a JSON value node to the appropriate type for a map value.
+     * Converts a JSON object directly to a Protobuf message using field descriptors.
+     * Maps JSON fields to Protobuf fields automatically by name.
      */
-    private Object convertMapValue(final JsonNode valueNode, final String valueType, final FieldConfig config) {
-        if (valueNode == null || valueNode.isNull()) {
-            return null;
+    private Message jsonToMessage(final JsonNode json, final Class<? extends Message> messageClass) {
+        final Message.Builder builder = builderFactory.createBuilderFrom(messageClass);
+
+        var jsonFields = json.fields();
+        while (jsonFields.hasNext()) {
+            var entry = jsonFields.next();
+            String fieldName = entry.getKey();
+            JsonNode fieldValue = entry.getValue();
+
+            if (fieldValue == null || fieldValue.isNull() || fieldValue.isMissingNode()) {
+                continue;
+            }
+
+            // Convert JSON array to List for repeated fields
+            if (fieldValue.isArray()) {
+                List<Object> values = convertJsonArray(fieldValue);
+                if (!values.isEmpty()) {
+                    setterResolver.setValue(builder, fieldName, values);
+                }
+            } else {
+                // Scalar value
+                Object value = convertJsonScalar(fieldValue);
+                if (value != null) {
+                    setterResolver.setValue(builder, fieldName, value);
+                }
+            }
         }
 
-        return switch (valueType) {
-            case STRING -> typeConverter.convert(valueNode, String.class);
-            case INT32 -> typeConverter.convert(valueNode, Integer.class);
-            case INT64 -> typeConverter.convert(valueNode, Long.class);
-            case FLOAT -> typeConverter.convert(valueNode, Float.class);
-            case DOUBLE -> typeConverter.convert(valueNode, Double.class);
-            case BOOLEAN -> typeConverter.convert(valueNode, Boolean.class);
-            case OBJECT -> buildMapObjectValue(valueNode, config);
-            default -> throw new MappingException(
-                    String.format("Map valueType '%s' is not supported", valueType));
-        };
+        return builder.build();
     }
 
     /**
-     * Builds a nested object for a map value.
+     * Converts a JSON array to a List of appropriate types.
      */
-    private Message buildMapObjectValue(final JsonNode valueNode, final FieldConfig config) {
-        if (!valueNode.isObject()) {
+    private List<Object> convertJsonArray(final JsonNode arrayNode) {
+        List<Object> result = new ArrayList<>();
+        for (JsonNode element : arrayNode) {
+            Object value = convertJsonScalar(element);
+            if (value != null) {
+                result.add(value);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Converts a JSON scalar value to the appropriate Java type.
+     */
+    private Object convertJsonScalar(final JsonNode node) {
+        if (node == null || node.isNull()) {
             return null;
         }
-
-        final String objectType = config.objectType();
-        if (objectType == null) {
-            throw new MappingException(
-                    "Map with valueType 'object' requires 'objectType' to be specified");
+        if (node.isTextual()) {
+            return node.asText();
         }
-
-        final Class<? extends Message> messageClass = typeResolver.resolveMessage(objectType);
-        final Message.Builder nestedBuilder = builderFactory.createBuilderFrom(messageClass);
-
-        populateFieldsSafe(nestedBuilder, valueNode, config.fields());
-
-        return nestedBuilder.build();
+        if (node.isInt()) {
+            return node.asInt();
+        }
+        if (node.isLong()) {
+            return node.asLong();
+        }
+        if (node.isDouble() || node.isFloat()) {
+            return node.asDouble();
+        }
+        if (node.isBoolean()) {
+            return node.asBoolean();
+        }
+        return node.asText();
     }
 
     public void setBuilderEventType(Message.Builder builder, String eventType) {
