@@ -122,6 +122,20 @@ eventTime:
   format: unix_millis    # 1710510600000
 ```
 
+Supported ISO 8601 formats:
+- With Z suffix: `"2024-01-15T10:30:00Z"`
+- With offset: `"2024-01-15T10:30:00+05:30"`
+- Non-standard offset (auto-normalized): `"2024-01-15T10:30:00-0300"` → `-03:00`
+
+### Booleans
+
+Boolean fields accept multiple formats:
+
+| Input | Result |
+|-------|--------|
+| `true`, `"true"`, `"yes"`, `"1"`, `1` | `true` |
+| `false`, `"false"`, `"no"`, `"0"`, `0` | `false` |
+
 ### Nested Objects
 
 ```yaml
@@ -280,6 +294,30 @@ facets:
     keyValueDelimiter: ":"
 # Input: "Price:56.99|Brand:Nike|Brand:Adidas"
 # Output: {"Price": {"numbers": [56.99]}, "Brand": {"text": ["Nike", "Adidas"]}}
+
+# Merge parallel arrays into objects (zipArrays)
+# JSON: {"items": [{"sku": "A"}], "quantities": [2], "prices": [100]}
+productDetails:
+  type: array
+  source: [items]
+  transform: zipArrays
+  transformParams:
+    merge:
+      qty: "quantities"        # quantities[i] -> item.qty
+      unitPrice: "prices"      # prices[i] -> item.unitPrice
+# Result: [{"sku": "A", "qty": 2, "unitPrice": 100}]
+
+# Map lookup with zipArrays
+# JSON: {"items": [{"sku": "A"}], "discounts": {"A": 10}}
+productDetails:
+  type: array
+  source: [items]
+  transform: zipArrays
+  transformParams:
+    lookupKey: "sku"           # Use item.sku as lookup key
+    merge:
+      discount: "discounts"    # discounts[item.sku] -> item.discount
+# Result: [{"sku": "A", "discount": 10}]
 ```
 
 ## Multiple Sources with Merge
@@ -401,11 +439,17 @@ MappingEngine engine = MappingEngine.builder()
     .withConfig("classpath:mapping/search.yaml")
     .withConfig("classpath:mapping/add-to-cart.yaml")
 
+    // Or register schema programmatically
+    .withSchema("custom-event", myMappingSchema)
+
     // Inject configId as eventType automatically (default: true)
     .injectEventType(true)
 
     // Register custom transform
     .registerTransform(new MyCustomTransform())
+
+    // Disable builtin transforms if you want only custom ones (default: true)
+    .registerBuiltinTransforms(false)
 
     // Custom ObjectMapper
     .withObjectMapper(customObjectMapper)
@@ -626,6 +670,11 @@ count:
 
 - JSON values > 2^53 may lose precision
 - Workaround: send large numbers as strings
+- Integer overflow is validated (values outside int32 range throw error)
+
+### Blank Strings
+
+Blank strings (empty or whitespace-only) are treated as `null`. This ensures `required: true` fields properly fail validation when the source value is blank.
 
 ## Complete Example
 
