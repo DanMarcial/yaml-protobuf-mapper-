@@ -79,43 +79,8 @@ class ValidationResultTest {
   }
 
   @Nested
-  @DisplayName("validateConfig")
-  class ValidateConfigTests {
-
-    @Test
-    @DisplayName("should return valid for existing valid config")
-    void shouldReturnValidForExistingConfig() {
-      ValidationResult result = engine.validateConfig("search-event");
-
-      assertThat(result.isValid()).isTrue();
-    }
-
-    @Test
-    @DisplayName("should return error for null configId")
-    void shouldReturnErrorForNullConfigId() {
-      ValidationResult result = engine.validateConfig(null);
-
-      assertThat(result.isValid()).isFalse();
-      assertThat(result.errors()).anyMatch(e -> e.contains("null or blank"));
-    }
-
-    @Test
-    @DisplayName("should return error for blank configId")
-    void shouldReturnErrorForBlankConfigId() {
-      ValidationResult result = engine.validateConfig("   ");
-
-      assertThat(result.isValid()).isFalse();
-      assertThat(result.errors()).anyMatch(e -> e.contains("null or blank"));
-    }
-
-    @Test
-    @DisplayName("should return error for unknown configId")
-    void shouldReturnErrorForUnknownConfigId() {
-      ValidationResult result = engine.validateConfig("nonexistent");
-
-      assertThat(result.isValid()).isFalse();
-      assertThat(result.errors()).anyMatch(e -> e.contains("No configuration found"));
-    }
+  @DisplayName("build-time validation")
+  class BuildTimeValidationTests {
 
     @Test
     @DisplayName("should throw at build time when field type is missing")
@@ -201,8 +166,8 @@ class ValidationResultTest {
     }
 
     @Test
-    @DisplayName("should build successfully with warning for field without source")
-    void shouldBuildWithWarningForFieldWithoutSource() {
+    @DisplayName("should build successfully with field without source when default is provided")
+    void shouldBuildWithFieldWithoutSourceWhenDefaultProvided() {
       FieldConfig fieldWithoutSource = FieldConfig.builder("field")
           .type("string")
           .source(List.of())  // Empty source
@@ -219,11 +184,7 @@ class ValidationResultTest {
           .withSchema("test-config", schema)
           .build();
 
-      ValidationResult result = testEngine.validateConfig("test-config");
-
-      assertThat(result.isValid()).isTrue();  // Warnings don't make it invalid
-      assertThat(result.warnings()).isNotEmpty();
-      assertThat(result.warnings()).anyMatch(w -> w.contains("no source defined"));
+      assertThat(testEngine).isNotNull();
     }
 
     @Test
@@ -265,9 +226,7 @@ class ValidationResultTest {
           .withSchema("test-config", schema)
           .build();
 
-      ValidationResult result = testEngine.validateConfig("test-config");
-
-      assertThat(result.isValid()).isTrue();
+      assertThat(testEngine).isNotNull();
     }
 
     @Test
@@ -396,9 +355,7 @@ class ValidationResultTest {
           .withSchema("test-config", schema)
           .build();
 
-      ValidationResult result = testEngine.validateConfig("test-config");
-
-      assertThat(result.isValid()).isTrue();
+      assertThat(testEngine).isNotNull();
     }
   }
 }

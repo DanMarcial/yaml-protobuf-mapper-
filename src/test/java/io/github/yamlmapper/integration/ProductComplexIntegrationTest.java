@@ -54,7 +54,6 @@ class ProductComplexIntegrationTest {
         .withProtobufPackage("com.google.cloud.retail.v2")
         .withConfig("classpath:integration/mapping/product-complex.yaml")
         .injectEventType(false)
-        .enablePostMappingValidation(false)
         .build();
   }
 

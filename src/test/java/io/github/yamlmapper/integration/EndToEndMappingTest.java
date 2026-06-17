@@ -57,7 +57,6 @@ class EndToEndMappingTest {
         .withConfig("classpath:integration/mapping/user-event-simple.yaml")
         .withConfig("classpath:integration/mapping/product-simple.yaml")
         .injectEventType(false)
-        .enablePostMappingValidation(true)
         .build();
 
     // Build engine with complex mappings
@@ -66,7 +65,6 @@ class EndToEndMappingTest {
         .withConfig("classpath:integration/mapping/user-event-complex.yaml")
         .withConfig("classpath:integration/mapping/product-complex.yaml")
         .injectEventType(false)
-        .enablePostMappingValidation(true)
         .build();
   }
 
@@ -435,30 +433,6 @@ class EndToEndMappingTest {
   }
 
   // ==================== Validation Tests ====================
-
-  @Nested
-  @DisplayName("Post-Mapping Validation Integration")
-  class ValidationTests {
-
-    @Test
-    @DisplayName("should pass validation for correctly mapped UserEvent")
-    void shouldPassValidationForCorrectUserEvent() {
-      UserEvent event = simpleEngine.map(userEventClean, "user-event-simple", UserEvent.class);
-      ValidationResult result = simpleEngine.validateMessage(event);
-
-      assertThat(result.isValid()).isTrue();
-      assertThat(result.errors()).isEmpty();
-    }
-
-    @Test
-    @DisplayName("should pass validation for correctly mapped Product")
-    void shouldPassValidationForCorrectProduct() {
-      Product product = simpleEngine.map(productClean, "product-simple", Product.class);
-      ValidationResult result = simpleEngine.validateMessage(product);
-
-      assertThat(result.isValid()).isTrue();
-    }
-  }
 
   // ==================== Helper Methods ====================
 

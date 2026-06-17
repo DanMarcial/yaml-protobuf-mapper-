@@ -48,7 +48,6 @@ class ProductAttributesIntegrationTest {
         .withProtobufPackage("com.google.cloud.retail.v2")
         .withConfig("classpath:integration/mapping/product-attributes.yaml")
         .injectEventType(false)
-        .enablePostMappingValidation(false)
         .build();
   }
 

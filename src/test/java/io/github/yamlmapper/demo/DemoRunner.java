@@ -16,8 +16,6 @@ import io.github.yamlmapper.transform.Transform;
 import io.github.yamlmapper.transform.TransformContextImpl;
 import io.github.yamlmapper.transform.TransformRegistry;
 import io.github.yamlmapper.transform.builtin.BuiltinTransforms;
-import io.github.yamlmapper.validation.ProtobufConstraints;
-import io.github.yamlmapper.validation.ProtobufMessageValidator;
 import io.github.yamlmapper.validation.SchemaValidator;
 import io.github.yamlmapper.validation.ValidationResult;
 
@@ -67,10 +65,9 @@ public class DemoRunner {
         {"5", "Chaotic Product", "Legacy product JSON with transforms"},
         // Part 2: Individual Components
         {"6", "Transforms Alone", "Using TransformRegistry directly"},
-        {"7", "Extraction with Fallback", "Using JsonNodeExtractor"},
+        {"7", "Extraction with Fallback", "Using PathResolver"},
         {"8", "YAML Schema Validation", "Validating configuration before use"},
-        {"9", "Post-Mapping Validation", "Validating Protobuf messages"},
-        {"10", "Type Resolution", "Using TypeResolver to find classes"},
+        {"9", "Type Resolution", "Using TypeResolver to find classes"},
     };
 
     public static void main(String[] args) throws Exception {
@@ -89,8 +86,7 @@ public class DemoRunner {
                 case "6" -> runScenario6_TransformsAlone();
                 case "7" -> runScenario7_ExtractionWithFallback();
                 case "8" -> runScenario8_YamlSchemaValidation();
-                case "9" -> runScenario9_PostMappingValidation();
-                case "10" -> runScenario10_TypeResolution();
+                case "9" -> runScenario9_TypeResolution();
                 case "a", "all" -> runAllScenarios();
                 case "q", "quit", "exit", "0" -> {
                     running = false;
@@ -108,7 +104,7 @@ public class DemoRunner {
     private static boolean isValidScenario(String choice) {
         try {
             int num = Integer.parseInt(choice);
-            return num >= 1 && num <= 10;
+            return num >= 1 && num <= 9;
         } catch (NumberFormatException e) {
             return false;
         }
@@ -132,7 +128,7 @@ public class DemoRunner {
         System.out.println(BOLD + "║  " + CYAN + "INDIVIDUAL COMPONENT USAGE" + RESET + BOLD + "                                         ║" + RESET);
         System.out.println(BOLD + "║                                                                      ║" + RESET);
 
-        for (int i = 5; i < 10; i++) {
+        for (int i = 5; i < 9; i++) {
             String[] s = SCENARIOS[i];
             System.out.printf(BOLD + "║" + RESET + "   [%2s] %-25s " + DIM + "%-30s" + RESET + BOLD + "║" + RESET + "%n",
                     s[0], s[1], truncateDesc(s[2], 30));
@@ -173,8 +169,7 @@ public class DemoRunner {
         runScenario6_TransformsAlone();
         runScenario7_ExtractionWithFallback();
         runScenario8_YamlSchemaValidation();
-        runScenario9_PostMappingValidation();
-        runScenario10_TypeResolution();
+        runScenario9_TypeResolution();
 
         printFooter();
         waitForEnter();
@@ -554,96 +549,8 @@ public class DemoRunner {
         printSuccess();
     }
 
-    private static void runScenario9_PostMappingValidation() throws Exception {
-        printScenarioHeader(9, "Post-Mapping Validation",
-                "Validating Protobuf messages against schema constraints");
-
-        // Show the validation schema constraints
-        String schemaInfo = """
-            Validation Schema: schemas/user-event.schema.json
-
-            Constraints include:
-            - visitorId: required, maxLength 128
-            - eventType: required (search, detail-page-view, etc.)
-            - For 'search' events: searchQuery OR pageCategories required
-            """;
-        System.out.println(box(schemaInfo.trim()));
-
-        // Load constraints
-        ProtobufConstraints constraints = ProtobufConstraints.fromClasspath(
-                "schemas/user-event.schema.json");
-
-        ProtobufMessageValidator validator = new ProtobufMessageValidator(constraints);
-
-        MappingEngine engine = MappingEngine.builder()
-                .withProtobufPackage(PROTOBUF_PACKAGE)
-                .withConfig("classpath:integration/mapping/user-event-simple.yaml")
-                .build();
-
-        // Valid message
-        System.out.println("\n" + CYAN + "▸ Test 1: Valid UserEvent" + RESET);
-
-        String validJson = """
-            {
-              "eventType": "search",
-              "visitorId": "visitor-123",
-              "searchQuery": "laptop"
-            }
-            """;
-
-        System.out.println("  Input JSON:");
-        printBoxedContent(validJson.trim(), 50);
-
-        UserEvent validEvent = engine.map(validJson, "user-event-simple", UserEvent.class);
-        ValidationResult validResult = validator.validate(validEvent);
-
-        System.out.println("\n  Mapped Protobuf:");
-        System.out.println("    eventType: \"" + validEvent.getEventType() + "\"");
-        System.out.println("    visitorId: \"" + validEvent.getVisitorId() + "\"");
-        System.out.println("    searchQuery: \"" + validEvent.getSearchQuery() + "\"");
-
-        if (validResult.isValid()) {
-            System.out.println("\n" + GREEN + "  ✓ Validation passed" + RESET);
-        }
-
-        // Invalid message (missing required field for search event)
-        System.out.println("\n" + CYAN + "▸ Test 2: Invalid UserEvent (missing required fields)" + RESET);
-
-        String invalidJson = """
-            {
-              "eventType": "search",
-              "visitorId": ""
-            }
-            """;
-
-        System.out.println("  Input JSON:");
-        printBoxedContent(invalidJson.trim(), 50);
-
-        // Build message directly to simulate invalid state
-        UserEvent.Builder invalidBuilder = UserEvent.newBuilder()
-                .setEventType("search");
-        // visitorId is empty, searchQuery is missing
-
-        UserEvent invalidEvent = invalidBuilder.build();
-        ValidationResult invalidResult = validator.validate(invalidEvent);
-
-        System.out.println("\n  Mapped Protobuf:");
-        System.out.println("    eventType: \"search\"");
-        System.out.println("    visitorId: \"\" " + RED + "(empty!)" + RESET);
-        System.out.println("    searchQuery: " + RED + "(missing!)" + RESET);
-
-        if (!invalidResult.isValid()) {
-            System.out.println("\n" + RED + "  ✗ Validation errors:" + RESET);
-            for (String error : invalidResult.errors()) {
-                System.out.println("    - " + error);
-            }
-        }
-
-        printSuccess();
-    }
-
-    private static void runScenario10_TypeResolution() throws Exception {
-        printScenarioHeader(10, "Type Resolution",
+    private static void runScenario9_TypeResolution() throws Exception {
+        printScenarioHeader(9, "Type Resolution",
                 "Using TypeResolver to find Protobuf classes");
 
         TypeResolver resolver = new TypeResolver(List.of(PROTOBUF_PACKAGE));

@@ -51,7 +51,6 @@ class ScatteredFieldsIntegrationTest {
         .withProtobufPackage("com.google.cloud.retail.v2")
         .withConfig("classpath:integration/mapping/product-scattered.yaml")
         .injectEventType(false)
-        .enablePostMappingValidation(false)
         .build();
   }
 
