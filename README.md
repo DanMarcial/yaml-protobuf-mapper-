@@ -187,7 +187,7 @@ attributes:
 
 ## Transforms
 
-### Available Transforms (11)
+### Available Transforms (13)
 
 | Transform | Description | Parameters |
 |-----------|-------------|------------|
@@ -202,6 +202,8 @@ attributes:
 | `trim` | Removes leading/trailing whitespace | - |
 | `filterBlank` | Filters empty strings from arrays | - |
 | `replaceChars` | Replaces characters | `from`, `to` |
+| `fieldsToAttributeMap` | Converts fields to CustomAttribute map | `fields` |
+| `parseKeyValuePairs` | Parses "key:value\|key:value" to map | `pairDelimiter`, `keyValueDelimiter` |
 
 ### Transform Examples
 
@@ -254,7 +256,72 @@ languageCode:
   transformParams:
     from: "_"
     to: "-"
+
+# Convert fields to CustomAttribute map (Google Retail API)
+attributes:
+  type: map
+  source: ["."]
+  objectType: CustomAttribute
+  transform: fieldsToAttributeMap
+  transformParams:
+    fields:
+      - vendor
+      - lengths_cm
+      - colors
+
+# Parse key:value pairs string to attribute map
+facets:
+  type: map
+  source: [facet_string]
+  objectType: CustomAttribute
+  transform: parseKeyValuePairs
+  transformParams:
+    pairDelimiter: "|"
+    keyValueDelimiter: ":"
+# Input: "Price:56.99|Brand:Nike|Brand:Adidas"
+# Output: {"Price": {"numbers": [56.99]}, "Brand": {"text": ["Nike", "Adidas"]}}
 ```
+
+## Scattered Fields
+
+When your JSON has related data spread across different nodes, use `source: ["."]` to keep the root context:
+
+```json
+{
+  "id": "PROD-123",
+  "price": { "current": 999.99 },
+  "past": { "price": 1199.99 },
+  "currency": { "code": "USD" }
+}
+```
+
+```yaml
+priceInfo:
+  type: object
+  source: ["."]           # Keep root context
+  objectType: PriceInfo
+  fields:
+    price:
+      type: float
+      source: [price.current]      # Access nested path
+    originalPrice:
+      type: float
+      source: [past.price]         # From different node
+    currencyCode:
+      type: string
+      source: [currency.code]      # From another node
+```
+
+### Path Syntax
+
+| Format | Example | Description |
+|--------|---------|-------------|
+| Simple | `fieldName` | Direct field access |
+| Nested | `user.address.city` | Dot notation for nested objects |
+| Array | `items[0]` | Array index access |
+| Combined | `users[0].address.street` | Mix of all formats |
+| Root context | `"."` or `"$"` | Reference current context |
+| Literal colon | `items:group_ids` | Field names containing `:` |
 
 ## Validation
 
@@ -450,9 +517,10 @@ JsonNode firstItem = pathResolver.resolve(root, "items[0]");
 
 - **Type auto-discovery**: Just declare the package, the engine finds the classes
 - **Field fallback**: `source: [new_name, legacy_name, old_name]` - tries in order
-- **Extensible transforms**: 11 built-in transforms + custom support
+- **Extensible transforms**: 13 built-in transforms + custom support
+- **Scattered fields**: Map data from different JSON nodes using `source: ["."]`
 - **Nested objects**: Recursive support for complex structures
-- **High performance**: Cached MethodHandles for setters
+- **High performance**: Cached MethodHandles and Caffeine cache for paths
 - **Thread-safe**: Immutable instance after construction
 
 ## Requirements
