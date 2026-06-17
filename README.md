@@ -277,31 +277,6 @@ Included validations:
 - Arrays have `itemType`
 - `objectType` is resolvable in Protobuf package
 
-### Post-Mapping Validation (Runtime)
-
-Validates the built Protobuf message against schema constraints:
-
-```java
-MappingEngine engine = MappingEngine.builder()
-    .withProtobufPackage("com.google.cloud.retail.v2")
-    .withConfig("classpath:mapping/search.yaml")
-    .enablePostMappingValidation(true)  // Enable validation
-    .build();
-
-UserEvent event = engine.map(json, "search", UserEvent.class);
-ValidationResult result = engine.validateMessage(event);
-
-if (!result.isValid()) {
-    result.errors().forEach(System.out::println);
-}
-```
-
-POST-mapping validations:
-- Required fields present
-- String max length
-- Numeric ranges (min/max)
-- Valid enum values
-
 ## Configuration Options
 
 ### Builder Options
@@ -318,9 +293,6 @@ MappingEngine engine = MappingEngine.builder()
 
     // Inject configId as eventType automatically (default: true)
     .injectEventType(true)
-
-    // Enable POST-mapping validation (default: false)
-    .enablePostMappingValidation(true)
 
     // Register custom transform
     .registerTransform(new MyCustomTransform())
@@ -350,29 +322,6 @@ data:
     visitorId:
       type: string
       source: [visitorId]
-```
-
-### Custom Validation Schemas
-
-You can use your own JSON schemas for POST-mapping validation:
-
-```java
-// Option 1: Schema from classpath
-MappingEngine engine = MappingEngine.builder()
-    .withProtobufPackage("com.google.cloud.retail.v2")
-    .withValidationSchema("UserEvent", "my-schemas/strict-user-event.schema.json")
-    .enablePostMappingValidation(true)
-    .build();
-
-// Option 2: Schema from filesystem
-ProtobufConstraints strictConstraints = ProtobufConstraints.fromPath(
-    Paths.get("/my-project/schemas/strict-user-event.json"));
-
-MappingEngine engine = MappingEngine.builder()
-    .withProtobufPackage("com.google.cloud.retail.v2")
-    .withValidationSchema("UserEvent", strictConstraints)
-    .enablePostMappingValidation(true)
-    .build();
 ```
 
 ## Standalone API Usage
@@ -446,31 +395,6 @@ MappingEngine engine = MappingEngine.builder()
     .build();
 ```
 
-### Testing Validation
-
-```java
-import io.github.yamlmapper.validation.*;
-import java.nio.file.Paths;
-
-// Load constraints from classpath
-ProtobufConstraints constraints = ProtobufConstraints.fromClasspath(
-    "schemas/user-event.schema.json");
-
-// Or from filesystem
-ProtobufConstraints customConstraints = ProtobufConstraints.fromPath(
-    Paths.get("/my-schemas/strict.json"));
-
-// Create validator
-ProtobufMessageValidator validator = new ProtobufMessageValidator(constraints);
-
-// Validate message
-ValidationResult result = validator.validate(myUserEvent);
-
-if (!result.isValid()) {
-    result.errors().forEach(System.out::println);
-}
-```
-
 ### Loading and Validating YAML Configuration
 
 ```java
@@ -502,29 +426,24 @@ if (!result.warnings().isEmpty()) {
 ### Extracting Values from JSON
 
 ```java
-import io.github.yamlmapper.extractor.*;
-import io.github.yamlmapper.config.FieldConfig;
+import io.github.yamlmapper.extractor.PathResolver;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 
 ObjectMapper mapper = new ObjectMapper();
 JsonNode root = mapper.readTree(jsonString);
 
-// Create extractor
+// Use PathResolver to extract values with dot notation
 PathResolver pathResolver = new PathResolver();
-EmbeddedJsonParser jsonParser = new EmbeddedJsonParser(mapper);
-TransformRegistry registry = BuiltinTransforms.createRegistry();
-TransformExecutor transformExecutor = new TransformExecutor(registry, mapper);
 
-JsonNodeExtractor extractor = new JsonNodeExtractor(
-    pathResolver, jsonParser, transformExecutor);
+// Simple path
+JsonNode visitorId = pathResolver.resolve(root, "visitorId");
 
-// Configure field with fallback sources
-FieldConfig config = FieldConfig.builder("visitorId")
-    .type("string")
-    .source("visitor_id", "visitorId", "vid")
-    .build();
+// Nested path
+JsonNode customerId = pathResolver.resolve(root, "customer.id");
 
-// Extract value
-Optional<JsonNode> value = extractor.extract(root, config);
+// Array access
+JsonNode firstItem = pathResolver.resolve(root, "items[0]");
 ```
 
 ## Features
