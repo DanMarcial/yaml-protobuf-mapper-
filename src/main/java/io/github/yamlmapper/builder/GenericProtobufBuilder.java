@@ -1,15 +1,19 @@
 package io.github.yamlmapper.builder;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import com.google.protobuf.ProtocolMessageEnum;
-import com.google.protobuf.Timestamp;
 import io.github.yamlmapper.config.FieldConfig;
 import io.github.yamlmapper.exception.FieldExtractionException;
 import io.github.yamlmapper.exception.MappingException;
-import io.github.yamlmapper.extractor.JsonNodeExtractor;
+import io.github.yamlmapper.extractor.PathResolver;
 import io.github.yamlmapper.resolver.TypeResolver;
+import io.github.yamlmapper.transform.Transform;
+import io.github.yamlmapper.transform.TransformContext;
+import io.github.yamlmapper.transform.TransformContextImpl;
+import io.github.yamlmapper.transform.TransformRegistry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,18 +38,41 @@ import static io.github.yamlmapper.config.TypeConstants.STRING;
 import static io.github.yamlmapper.config.TypeConstants.TIMESTAMP;
 import static io.github.yamlmapper.exception.ErrorMessages.ERR_FIELD_PROCESSING;
 
+/**
+ * Builds Protobuf messages from JSON using YAML-defined field configurations.
+ *
+ * <p>This class handles the complete flow of field extraction and conversion:
+ * <ol>
+ *   <li>Resolve JSON path to extract value</li>
+ *   <li>Parse embedded JSON if enabled</li>
+ *   <li>Apply transform if specified</li>
+ *   <li>Convert to target type</li>
+ *   <li>Set value on Protobuf builder</li>
+ * </ol>
+ */
 public class GenericProtobufBuilder {
 
     private static final Logger log = LoggerFactory.getLogger(GenericProtobufBuilder.class);
 
-    private final JsonNodeExtractor extractor;
+    private final PathResolver pathResolver;
+    private final TransformRegistry transformRegistry;
+    private final ObjectMapper objectMapper;
     private final TypeConverter typeConverter;
     private final SetterResolver setterResolver;
     private final TypeResolver typeResolver;
     private final BuilderFactory builderFactory;
 
-    public GenericProtobufBuilder(JsonNodeExtractor extractor, TypeConverter typeConverter, SetterResolver setterResolver, TypeResolver typeResolver, BuilderFactory builderFactory) {
-        this.extractor = extractor;
+    public GenericProtobufBuilder(
+            PathResolver pathResolver,
+            TransformRegistry transformRegistry,
+            ObjectMapper objectMapper,
+            TypeConverter typeConverter,
+            SetterResolver setterResolver,
+            TypeResolver typeResolver,
+            BuilderFactory builderFactory) {
+        this.pathResolver = pathResolver;
+        this.transformRegistry = transformRegistry;
+        this.objectMapper = objectMapper;
         this.typeConverter = typeConverter;
         this.setterResolver = setterResolver;
         this.typeResolver = typeResolver;
@@ -54,7 +81,6 @@ public class GenericProtobufBuilder {
 
     /**
      * Builds a Protobuf message from JSON using an existing builder.
-     * Use this when you need to manipulate the builder before populating (e.g., setting eventType).
      */
     @SuppressWarnings("unchecked")
     public <T extends Message> T build(
@@ -70,26 +96,23 @@ public class GenericProtobufBuilder {
         return (T) builder.build();
     }
 
-    /**
-     * Builds a Protobuf message from JSON, creating the builder internally.
-     * Use this for simple cases where you don't need to manipulate the builder.
-     */
-    public <T extends Message> T build(
-            final JsonNode jsonNode,
-            final String messageType,
-            final Map<String, FieldConfig> fields) {
-
-        final Class<? extends Message> messageClass = typeResolver.resolveMessage(messageType);
-        final Message.Builder builder = builderFactory.createBuilderFrom(messageClass);
-        return build(builder, jsonNode, fields);
+    public void setBuilderEventType(Message.Builder builder, String eventType) {
+        setterResolver.setValue(builder, "eventType", eventType);
     }
+
+    // =========================================================================
+    // Field Population
+    // =========================================================================
 
     private void populateFields(
             final Message.Builder builder,
             final JsonNode jsonNode,
             final Map<String, FieldConfig> fields) {
 
-        // Track which oneof groups have been set (oneofName -> fieldName that set it)
+        if (fields == null || fields.isEmpty()) {
+            return;
+        }
+
         Map<String, String> setOneofs = new HashMap<>();
 
         for (Map.Entry<String, FieldConfig> entry : fields.entrySet()) {
@@ -109,9 +132,7 @@ public class GenericProtobufBuilder {
                 }
 
                 if (value != null) {
-                    // Check for oneof conflict before setting value (log only)
-                    checkOneofConflictLogOnly(builder, fieldName, setOneofs);
-
+                    checkOneofConflict(builder, fieldName, setOneofs);
                     setterResolver.setValue(builder, fieldName, value);
                 }
             } catch (MappingException e) {
@@ -122,10 +143,18 @@ public class GenericProtobufBuilder {
         }
     }
 
-    /**
-     * Checks for oneof conflicts and logs a warning (without collecting in a list).
-     */
-    private void checkOneofConflictLogOnly(
+    private void populateFieldsSafe(
+            final Message.Builder builder,
+            final JsonNode jsonNode,
+            final Map<String, FieldConfig> fields) {
+
+        if (fields == null || fields.isEmpty()) {
+            return;
+        }
+        populateFields(builder, jsonNode, fields);
+    }
+
+    private void checkOneofConflict(
             final Message.Builder builder,
             final String fieldName,
             final Map<String, String> setOneofs) {
@@ -144,6 +173,161 @@ public class GenericProtobufBuilder {
         setOneofs.put(oneofInfo.oneofName(), oneofInfo.fieldName());
     }
 
+    // =========================================================================
+    // Field Extraction
+    // =========================================================================
+
+    /**
+     * Extracts a value from JSON based on field configuration.
+     * Handles path resolution, embedded JSON parsing, and transforms.
+     */
+    private Optional<JsonNode> extractField(final JsonNode root, final FieldConfig config) {
+        for (String source : config.source()) {
+            JsonNode node = pathResolver.resolve(root, source);
+
+            if (node == null || node.isNull() || node.isMissingNode()) {
+                continue;
+            }
+
+            // Parse embedded JSON if enabled
+            if (config.parseEmbeddedJson()) {
+                node = tryParseEmbeddedJson(node);
+            }
+
+            // Apply transform if specified
+            if (config.transform() != null) {
+                node = applyTransform(node, config, root);
+            }
+
+            return Optional.of(node);
+        }
+
+        return Optional.empty();
+    }
+
+    /**
+     * Attempts to parse a text node as embedded JSON.
+     */
+    private JsonNode tryParseEmbeddedJson(final JsonNode node) {
+        if (node == null || !node.isTextual()) {
+            return node;
+        }
+
+        String text = node.asText().trim();
+        boolean looksLikeJson =
+                (text.startsWith("{") && text.endsWith("}")) ||
+                (text.startsWith("[") && text.endsWith("]"));
+
+        if (!looksLikeJson) {
+            return node;
+        }
+
+        try {
+            return objectMapper.readTree(text);
+        } catch (Exception e) {
+            throw new MappingException("Failed to parse embedded JSON: " + text, e);
+        }
+    }
+
+    /**
+     * Applies a transform to a node.
+     */
+    private JsonNode applyTransform(final JsonNode node, final FieldConfig config, final JsonNode root) {
+        Transform transform = transformRegistry.get(config.transform());
+
+        if (transform == null) {
+            log.warn("Transform '{}' not found for field '{}'", config.transform(), config.name());
+            return node;
+        }
+
+        log.debug("Applying transform '{}' to field '{}'", config.transform(), config.name());
+
+        TransformContext context = new TransformContextImpl(
+                root,
+                objectMapper,
+                config.transformParams()
+        );
+
+        return transform.apply(node, context);
+    }
+
+    // =========================================================================
+    // Field Building by Type
+    // =========================================================================
+
+    public Object buildField(final JsonNode jsonNode, final FieldConfig config) {
+        if (config.hasMergeDefinitions()) {
+            return buildMergedField(jsonNode, config);
+        }
+
+        final String type = config.type();
+
+        return switch (type) {
+            case STRING, INT32, INT64, FLOAT, DOUBLE, BOOLEAN -> {
+                final JsonNode extracted = extractField(jsonNode, config).orElse(null);
+                yield convertPrimitive(extracted, type);
+            }
+            case TIMESTAMP -> {
+                final JsonNode extracted = extractField(jsonNode, config).orElse(null);
+                final String format = config.format() != null ? config.format() : FORMAT_ISO8601;
+                yield typeConverter.convertTimestamp(extracted, format);
+            }
+            case ARRAY -> buildArray(jsonNode, config);
+            case OBJECT -> buildObject(jsonNode, config);
+            case ENUM -> buildEnum(jsonNode, config);
+            case MAP -> buildMap(jsonNode, config);
+            default -> throw new IllegalStateException("Unsupported type: " + type);
+        };
+    }
+
+    @SuppressWarnings("unchecked")
+    private Object buildMergedField(final JsonNode jsonNode, final FieldConfig config) {
+        final String type = config.type();
+
+        if (MAP.equals(type)) {
+            Map<String, Object> mergedMap = new HashMap<>();
+            for (FieldConfig definition : config.mergeDefinitions()) {
+                Object result = buildField(jsonNode, definition);
+                if (result instanceof Map) {
+                    mergedMap.putAll((Map<String, Object>) result);
+                }
+            }
+            return mergedMap.isEmpty() ? null : mergedMap;
+        }
+
+        if (ARRAY.equals(type)) {
+            List<Object> mergedList = new ArrayList<>();
+            for (FieldConfig definition : config.mergeDefinitions()) {
+                Object result = buildField(jsonNode, definition);
+                if (result instanceof List) {
+                    mergedList.addAll((List<?>) result);
+                }
+            }
+            return mergedList.isEmpty() ? null : mergedList;
+        }
+
+        for (FieldConfig definition : config.mergeDefinitions()) {
+            Object result = buildField(jsonNode, definition);
+            if (result != null) {
+                return result;
+            }
+        }
+
+        return null;
+    }
+
+    private Object convertPrimitive(final JsonNode extracted, final String type) {
+        return switch (type) {
+            case STRING -> typeConverter.convert(extracted, String.class);
+            case INT32 -> typeConverter.convert(extracted, Integer.class);
+            case INT64 -> typeConverter.convert(extracted, Long.class);
+            case FLOAT -> typeConverter.convert(extracted, Float.class);
+            case DOUBLE -> typeConverter.convert(extracted, Double.class);
+            case BOOLEAN -> typeConverter.convert(extracted, Boolean.class);
+            default -> null;
+        };
+    }
+
     private Object convertDefaultValue(final Object defaultValue, final String type) {
         if (defaultValue == null) {
             return null;
@@ -160,9 +344,6 @@ public class GenericProtobufBuilder {
         };
     }
 
-    /**
-     * Converts an Object to a Number type using the appropriate converter.
-     */
     private <T extends Number> T toNumber(
             final Object value,
             final java.util.function.Function<Number, T> fromNumber,
@@ -180,135 +361,13 @@ public class GenericProtobufBuilder {
         return Boolean.parseBoolean(value.toString());
     }
 
-    /**
-     * Populates fields without throwing if fields is null/empty.
-     * Used internally for recursive calls where empty fields is valid.
-     */
-    private void populateFieldsSafe(
-            final Message.Builder builder,
-            final JsonNode jsonNode,
-            final Map<String, FieldConfig> fields) {
+    // =========================================================================
+    // Complex Type Builders
+    // =========================================================================
 
-        if (fields == null || fields.isEmpty()) {
-            return;
-        }
-        populateFields(builder, jsonNode, fields);
-    }
-
-    /**
-     * Builds a field value from JSON based on the field configuration.
-     *
-     * <p>For primitive types (string, int, long, float, double, boolean, timestamp),
-     * extraction is done once and the value is passed directly to the converter.
-     * This avoids redundant extraction calls for better performance.
-     *
-     * <p>For fields with merge definitions, each definition is processed separately
-     * and results are merged (maps are combined, arrays are concatenated).
-     *
-     * @param jsonNode the source JSON
-     * @param config the field configuration
-     * @return the converted value, or null if not found
-     */
-    public Object buildField(final JsonNode jsonNode, final FieldConfig config) {
-        // Handle merge definitions
-        if (config.hasMergeDefinitions()) {
-            return buildMergedField(jsonNode, config);
-        }
-
-        final String type = config.type();
-
-        // For primitive types, extract once and convert directly
-        // This avoids calling extractor.extract() multiple times
-        return switch (type) {
-            case STRING, INT32, INT64, FLOAT, DOUBLE, BOOLEAN -> {
-                final JsonNode extracted = extractor.extract(jsonNode, config).orElse(null);
-                yield convertPrimitive(extracted, type);
-            }
-            case TIMESTAMP -> {
-                final JsonNode extracted = extractor.extract(jsonNode, config).orElse(null);
-                final String format = config.format() != null ? config.format() : FORMAT_ISO8601;
-                yield typeConverter.convertTimestamp(extracted, format);
-            }
-            // Complex types need special handling with their own extraction
-            case ARRAY -> buildArray(jsonNode, config);
-            case OBJECT -> buildObject(jsonNode, config);
-            case ENUM -> buildEnum(jsonNode, config);
-            case MAP -> buildMap(jsonNode, config);
-            default -> throw new IllegalStateException("Unsupported type: " + type);
-        };
-    }
-
-    /**
-     * Builds a field by processing multiple merge definitions and combining results.
-     * Currently supports merging maps (entries are combined) and arrays (concatenated).
-     *
-     * @param jsonNode the source JSON
-     * @param config the field configuration with merge definitions
-     * @return the merged value, or null if all definitions return null
-     */
-    @SuppressWarnings("unchecked")
-    private Object buildMergedField(final JsonNode jsonNode, final FieldConfig config) {
-        final String type = config.type();
-
-        if (MAP.equals(type)) {
-            // Merge maps: combine all entries from each definition
-            Map<String, Object> mergedMap = new HashMap<>();
-
-            for (FieldConfig definition : config.mergeDefinitions()) {
-                Object result = buildField(jsonNode, definition);
-                if (result instanceof Map) {
-                    Map<String, Object> partialMap = (Map<String, Object>) result;
-                    mergedMap.putAll(partialMap);
-                }
-            }
-
-            return mergedMap.isEmpty() ? null : mergedMap;
-        }
-
-        if (ARRAY.equals(type)) {
-            // Merge arrays: concatenate all results
-            List<Object> mergedList = new ArrayList<>();
-
-            for (FieldConfig definition : config.mergeDefinitions()) {
-                Object result = buildField(jsonNode, definition);
-                if (result instanceof List) {
-                    mergedList.addAll((List<?>) result);
-                }
-            }
-
-            return mergedList.isEmpty() ? null : mergedList;
-        }
-
-        // For other types, use the first non-null result (fallback behavior)
-        for (FieldConfig definition : config.mergeDefinitions()) {
-            Object result = buildField(jsonNode, definition);
-            if (result != null) {
-                return result;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Converts an already-extracted JsonNode to the target primitive type.
-     * This is more efficient than extracting inside each conversion method.
-     */
-    private Object convertPrimitive(final JsonNode extracted, final String type) {
-        return switch (type) {
-            case STRING -> typeConverter.convert(extracted, String.class);
-            case INT32 -> typeConverter.convert(extracted, Integer.class);
-            case INT64 -> typeConverter.convert(extracted, Long.class);
-            case FLOAT -> typeConverter.convert(extracted, Float.class);
-            case DOUBLE -> typeConverter.convert(extracted, Double.class);
-            case BOOLEAN -> typeConverter.convert(extracted, Boolean.class);
-            default -> null;
-        };
-    }
-
-    private List<?> buildArray(final JsonNode jsonNode, final FieldConfig config){
+    private List<?> buildArray(final JsonNode jsonNode, final FieldConfig config) {
         final String itemType = config.itemType();
-        final JsonNode extracted = extractor.extract(jsonNode, config).orElse(null);
+        final JsonNode extracted = extractField(jsonNode, config).orElse(null);
 
         return switch (itemType) {
             case STRING -> typeConverter.convertList(extracted, String.class);
@@ -322,7 +381,7 @@ public class GenericProtobufBuilder {
     }
 
     private List<Message> buildObjectArray(final JsonNode jsonNode, final FieldConfig config, final String itemType) {
-        final Optional<JsonNode> arrayNodeOpt = extractor.extract(jsonNode, config);
+        final Optional<JsonNode> arrayNodeOpt = extractField(jsonNode, config);
 
         if (itemType == null || arrayNodeOpt.isEmpty() || !arrayNodeOpt.get().isArray()) {
             return null;
@@ -348,7 +407,7 @@ public class GenericProtobufBuilder {
     }
 
     private Message buildObject(final JsonNode jsonNode, final FieldConfig config) {
-        final Optional<JsonNode> extractedOpt = extractor.extract(jsonNode, config);
+        final Optional<JsonNode> extractedOpt = extractField(jsonNode, config);
         if (extractedOpt.isEmpty() || !extractedOpt.get().isObject()) {
             return null;
         }
@@ -368,22 +427,8 @@ public class GenericProtobufBuilder {
         return nestedBuilder.build();
     }
 
-    /**
-     * Builds a Protobuf enum value from JSON.
-     *
-     * <p>Supports multiple input formats:
-     * <ul>
-     *   <li>String matching enum name: "IN_STOCK"</li>
-     *   <li>String case-insensitive: "in_stock", "InStock"</li>
-     *   <li>Numeric value: 1 (matches enum number)</li>
-     * </ul>
-     *
-     * @param jsonNode the source JSON
-     * @param config the field configuration with enumType
-     * @return the Protobuf enum value, or null if not found
-     */
     private ProtocolMessageEnum buildEnum(final JsonNode jsonNode, final FieldConfig config) {
-        final Optional<JsonNode> extractedOpt = extractor.extract(jsonNode, config);
+        final Optional<JsonNode> extractedOpt = extractField(jsonNode, config);
         if (extractedOpt.isEmpty()) {
             return null;
         }
@@ -392,53 +437,40 @@ public class GenericProtobufBuilder {
         final String enumTypeName = config.enumType();
 
         if (enumTypeName == null || enumTypeName.isBlank()) {
-            throw new MappingException(
-                    "Field type 'enum' requires 'enumType' to be specified");
+            throw new MappingException("Field type 'enum' requires 'enumType' to be specified");
         }
 
-        // Resolve the enum class
         final Class<?> enumClass = typeResolver.resolve(enumTypeName);
         if (!ProtocolMessageEnum.class.isAssignableFrom(enumClass)) {
-            throw new MappingException(
-                    String.format("Type '%s' is not a Protobuf enum", enumTypeName));
+            throw new MappingException(String.format("Type '%s' is not a Protobuf enum", enumTypeName));
         }
 
-        // Get the enum descriptor
         try {
             final Descriptors.EnumDescriptor descriptor = getEnumDescriptor(enumClass);
-
             Descriptors.EnumValueDescriptor valueDescriptor = null;
 
             if (node.isNumber()) {
-                // Match by enum number
                 valueDescriptor = descriptor.findValueByNumber(node.intValue());
             } else if (node.isTextual()) {
                 final String textValue = node.asText().trim();
-
-                // Try exact match first
                 valueDescriptor = descriptor.findValueByName(textValue);
 
-                // Try uppercase if not found
                 if (valueDescriptor == null) {
                     valueDescriptor = descriptor.findValueByName(textValue.toUpperCase());
                 }
 
-                // Try with underscores (e.g., "inStock" -> "IN_STOCK")
                 if (valueDescriptor == null) {
-                    String normalized = textValue
-                            .replaceAll("([a-z])([A-Z])", "$1_$2")
-                            .toUpperCase();
+                    String normalized = textValue.replaceAll("([a-z])([A-Z])", "$1_$2").toUpperCase();
                     valueDescriptor = descriptor.findValueByName(normalized);
                 }
             }
 
             if (valueDescriptor == null) {
-                throw new MappingException(
-                        String.format("Enum value '%s' not found in %s. Valid values: %s",
-                                node.asText(), enumTypeName, descriptor.getValues()));
+                throw new MappingException(String.format(
+                        "Enum value '%s' not found in %s. Valid values: %s",
+                        node.asText(), enumTypeName, descriptor.getValues()));
             }
 
-            // Create the enum instance
             return createEnumInstance(enumClass, valueDescriptor);
 
         } catch (MappingException e) {
@@ -449,41 +481,8 @@ public class GenericProtobufBuilder {
         }
     }
 
-    private Descriptors.EnumDescriptor getEnumDescriptor(Class<?> enumClass) {
-        try {
-            var method = enumClass.getMethod("getDescriptor");
-            return (Descriptors.EnumDescriptor) method.invoke(null);
-        } catch (Exception e) {
-            throw new MappingException(
-                    "Failed to get descriptor for enum: " + enumClass.getName(), e);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private ProtocolMessageEnum createEnumInstance(Class<?> enumClass,
-                                                    Descriptors.EnumValueDescriptor valueDescriptor) {
-        try {
-            var method = enumClass.getMethod("forNumber", int.class);
-            return (ProtocolMessageEnum) method.invoke(null, valueDescriptor.getNumber());
-        } catch (Exception e) {
-            throw new MappingException(
-                    "Failed to create enum instance for: " + valueDescriptor.getName(), e);
-        }
-    }
-
-    /**
-     * Builds a Protobuf map field from JSON.
-     *
-     * <p>The JSON is expected to already have the correct structure from the transform.
-     * For object values, the JSON fields are mapped directly to the Protobuf message
-     * using the field descriptors.
-     *
-     * @param jsonNode the source JSON
-     * @param config the field configuration with objectType
-     * @return a Map suitable for Protobuf putAll, or null if not found
-     */
     private Map<?, ?> buildMap(final JsonNode jsonNode, final FieldConfig config) {
-        final Optional<JsonNode> extractedOpt = extractor.extract(jsonNode, config);
+        final Optional<JsonNode> extractedOpt = extractField(jsonNode, config);
         if (extractedOpt.isEmpty() || !extractedOpt.get().isObject()) {
             return null;
         }
@@ -499,7 +498,6 @@ public class GenericProtobufBuilder {
         Map<String, Message> result = new HashMap<>();
 
         var entries = mapNode.fields();
-
         while (entries.hasNext()) {
             var entry = entries.next();
             String key = entry.getKey();
@@ -516,10 +514,10 @@ public class GenericProtobufBuilder {
         return result.isEmpty() ? null : result;
     }
 
-    /**
-     * Converts a JSON object directly to a Protobuf message using field descriptors.
-     * Maps JSON fields to Protobuf fields automatically by name.
-     */
+    // =========================================================================
+    // Helpers
+    // =========================================================================
+
     private Message jsonToMessage(final JsonNode json, final Class<? extends Message> messageClass) {
         final Message.Builder builder = builderFactory.createBuilderFrom(messageClass);
 
@@ -533,14 +531,12 @@ public class GenericProtobufBuilder {
                 continue;
             }
 
-            // Convert JSON array to List for repeated fields
             if (fieldValue.isArray()) {
                 List<Object> values = convertJsonArray(fieldValue);
                 if (!values.isEmpty()) {
                     setterResolver.setValue(builder, fieldName, values);
                 }
             } else {
-                // Scalar value
                 Object value = convertJsonScalar(fieldValue);
                 if (value != null) {
                     setterResolver.setValue(builder, fieldName, value);
@@ -551,9 +547,6 @@ public class GenericProtobufBuilder {
         return builder.build();
     }
 
-    /**
-     * Converts a JSON array to a List of appropriate types.
-     */
     private List<Object> convertJsonArray(final JsonNode arrayNode) {
         List<Object> result = new ArrayList<>();
         for (JsonNode element : arrayNode) {
@@ -565,32 +558,37 @@ public class GenericProtobufBuilder {
         return result;
     }
 
-    /**
-     * Converts a JSON scalar value to the appropriate Java type.
-     */
     private Object convertJsonScalar(final JsonNode node) {
         if (node == null || node.isNull()) {
             return null;
         }
-        if (node.isTextual()) {
-            return node.asText();
-        }
-        if (node.isInt()) {
-            return node.asInt();
-        }
-        if (node.isLong()) {
-            return node.asLong();
-        }
-        if (node.isDouble() || node.isFloat()) {
-            return node.asDouble();
-        }
-        if (node.isBoolean()) {
-            return node.asBoolean();
-        }
-        return node.asText();
+
+        return switch (node.getNodeType()) {
+            case STRING -> node.textValue();
+            case BOOLEAN -> node.booleanValue();
+            case NUMBER -> node.numberValue();
+            default -> node.asText();
+        };
     }
 
-    public void setBuilderEventType(Message.Builder builder, String eventType) {
-        setterResolver.setValue(builder, "eventType", eventType);
+    private Descriptors.EnumDescriptor getEnumDescriptor(Class<?> enumClass) {
+        try {
+            var method = enumClass.getMethod("getDescriptor");
+            return (Descriptors.EnumDescriptor) method.invoke(null);
+        } catch (Exception e) {
+            throw new MappingException("Failed to get descriptor for enum: " + enumClass.getName(), e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private ProtocolMessageEnum createEnumInstance(
+            Class<?> enumClass,
+            Descriptors.EnumValueDescriptor valueDescriptor) {
+        try {
+            var method = enumClass.getMethod("forNumber", int.class);
+            return (ProtocolMessageEnum) method.invoke(null, valueDescriptor.getNumber());
+        } catch (Exception e) {
+            throw new MappingException("Failed to create enum instance for: " + valueDescriptor.getName(), e);
+        }
     }
 }

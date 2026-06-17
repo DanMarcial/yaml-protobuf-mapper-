@@ -11,10 +11,7 @@ import com.google.cloud.retail.v2.UserEvent;
 import com.google.cloud.retail.v2.UserInfo;
 import io.github.yamlmapper.config.FieldConfig;
 import io.github.yamlmapper.exception.MappingException;
-import io.github.yamlmapper.extractor.EmbeddedJsonParser;
-import io.github.yamlmapper.extractor.JsonNodeExtractor;
 import io.github.yamlmapper.extractor.PathResolver;
-import io.github.yamlmapper.extractor.TransformExecutor;
 import io.github.yamlmapper.resolver.TypeResolver;
 import io.github.yamlmapper.transform.TransformRegistry;
 import java.time.Instant;
@@ -31,26 +28,27 @@ import org.junit.jupiter.api.Test;
  */
 class GenericProtobufBuilderIntegrationTest {
 
-  private static GenericProtobufBuilder builder;
+  private static GenericProtobufBuilder protobufBuilder;
   private static ObjectMapper objectMapper;
 
   @BeforeAll
   static void setUp() {
     objectMapper = new ObjectMapper();
 
-    PathResolver pathResolver = new PathResolver();
-    EmbeddedJsonParser jsonParser = new EmbeddedJsonParser(objectMapper);
-    TransformRegistry transformRegistry = new TransformRegistry();
-    TransformExecutor transformExecutor = new TransformExecutor(transformRegistry, objectMapper);
+    protobufBuilder = new GenericProtobufBuilder(
+        new PathResolver(),
+        new TransformRegistry(),
+        objectMapper,
+        new TypeConverter(),
+        new SetterResolver(),
+        new TypeResolver(List.of("com.google.cloud.retail.v2")),
+        new BuilderFactory()
+    );
+  }
 
-    JsonNodeExtractor extractor = new JsonNodeExtractor(pathResolver, jsonParser, transformExecutor);
-    TypeConverter typeConverter = new TypeConverter();
-    SetterResolver setterResolver = new SetterResolver();
-    TypeResolver typeResolver = new TypeResolver(List.of("com.google.cloud.retail.v2"));
-    BuilderFactory builderFactory = new BuilderFactory();
-
-    builder = new GenericProtobufBuilder(
-        extractor, typeConverter, setterResolver, typeResolver, builderFactory);
+  // Helper to build UserEvent
+  private static UserEvent buildUserEvent(JsonNode json, Map<String, FieldConfig> fields) {
+    return protobufBuilder.build(UserEvent.newBuilder(), json, fields);
   }
 
   @Nested
@@ -109,7 +107,7 @@ class GenericProtobufBuilderIntegrationTest {
               .build()
       );
 
-      UserEvent event = builder.build(jsonNode, "UserEvent", fields);
+      UserEvent event = buildUserEvent(jsonNode, fields);
 
       assertThat(event.getVisitorId()).isEqualTo("VIS-123");
       assertThat(event.getSessionId()).isEqualTo("SESS-456");
@@ -156,7 +154,7 @@ class GenericProtobufBuilderIntegrationTest {
               .build()
       );
 
-      UserEvent event = builder.build(jsonNode, "UserEvent", fields);
+      UserEvent event = buildUserEvent(jsonNode, fields);
 
       assertThat(event.getSessionId()).isEqualTo("default-session");
     }
@@ -184,7 +182,7 @@ class GenericProtobufBuilderIntegrationTest {
               .build()
       );
 
-      UserEvent event = builder.build(jsonNode, "UserEvent", fields);
+      UserEvent event = buildUserEvent(jsonNode, fields);
 
       assertThat(event.getOffset()).isEqualTo(10);
     }
@@ -213,7 +211,7 @@ class GenericProtobufBuilderIntegrationTest {
               .build()
       );
 
-      UserEvent event = builder.build(jsonNode, "UserEvent", fields);
+      UserEvent event = buildUserEvent(jsonNode, fields);
 
       assertThat(event.getSessionId()).isEqualTo("actual-session");
     }
@@ -242,7 +240,7 @@ class GenericProtobufBuilderIntegrationTest {
               .build()
       );
 
-      assertThatThrownBy(() -> builder.build(jsonNode, "UserEvent", fields))
+      assertThatThrownBy(() -> buildUserEvent(jsonNode, fields))
           .isInstanceOf(MappingException.class)
           .hasMessageContaining("Required field 'visitorId' not found");
     }
@@ -267,7 +265,7 @@ class GenericProtobufBuilderIntegrationTest {
               .build()
       );
 
-      UserEvent event = builder.build(jsonNode, "UserEvent", fields);
+      UserEvent event = buildUserEvent(jsonNode, fields);
 
       assertThat(event.getVisitorId()).isEqualTo("default-visitor");
     }
@@ -316,7 +314,7 @@ class GenericProtobufBuilderIntegrationTest {
               .build()
       );
 
-      UserEvent event = builder.build(jsonNode, "UserEvent", fields);
+      UserEvent event = buildUserEvent(jsonNode, fields);
 
       assertThat(event.getVisitorId()).isEqualTo("VIS-123");
       assertThat(event.getUserInfo().getUserId()).isEqualTo("USER-456");
@@ -362,7 +360,7 @@ class GenericProtobufBuilderIntegrationTest {
               .build()
       );
 
-      UserEvent event = builder.build(jsonNode, "UserEvent", fields);
+      UserEvent event = buildUserEvent(jsonNode, fields);
 
       assertThat(event.getUserInfo().getUserAgent()).isEqualTo("unknown-agent");
     }
@@ -436,7 +434,7 @@ class GenericProtobufBuilderIntegrationTest {
               .build()
       );
 
-      UserEvent event = builder.build(jsonNode, "UserEvent", fields);
+      UserEvent event = buildUserEvent(jsonNode, fields);
 
       List<ProductDetail> products = event.getProductDetailsList();
       assertThat(products).hasSize(2);
@@ -503,7 +501,7 @@ class GenericProtobufBuilderIntegrationTest {
               .build()
       );
 
-      UserEvent event = builder.build(jsonNode, "UserEvent", fields);
+      UserEvent event = buildUserEvent(jsonNode, fields);
 
       assertThat(event.getProductDetailsList().get(0).getQuantity().getValue()).isEqualTo(1);
     }
@@ -625,7 +623,7 @@ class GenericProtobufBuilderIntegrationTest {
               .build())
       );
 
-      UserEvent event = builder.build(jsonNode, "UserEvent", fields);
+      UserEvent event = buildUserEvent(jsonNode, fields);
 
       // Verify all mappings
       assertThat(event.getVisitorId()).isEqualTo("VIS-COMPLETE-123");

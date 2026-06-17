@@ -9,10 +9,7 @@ import com.google.protobuf.util.JsonFormat;
 import io.github.yamlmapper.config.FieldConfig;
 import io.github.yamlmapper.config.MappingSchema;
 import io.github.yamlmapper.core.MappingEngine;
-import io.github.yamlmapper.extractor.EmbeddedJsonParser;
-import io.github.yamlmapper.extractor.JsonNodeExtractor;
 import io.github.yamlmapper.extractor.PathResolver;
-import io.github.yamlmapper.extractor.TransformExecutor;
 import io.github.yamlmapper.loader.YamlConfigLoader;
 import io.github.yamlmapper.resolver.TypeResolver;
 import io.github.yamlmapper.transform.Transform;
@@ -453,7 +450,7 @@ public class DemoRunner {
 
     private static void runScenario7_ExtractionWithFallback() throws Exception {
         printScenarioHeader(7, "Extraction with Fallback",
-                "Using JsonNodeExtractor to find values in multiple paths");
+                "Using PathResolver to find values in multiple paths");
 
         // Show YAML equivalent first
         String yamlEquivalent = """
@@ -480,39 +477,34 @@ public class DemoRunner {
         printBoxedContent(json.trim(), 50);
 
         JsonNode root = MAPPER.readTree(json);
-
         PathResolver pathResolver = new PathResolver();
-        EmbeddedJsonParser jsonParser = new EmbeddedJsonParser(MAPPER);
-        TransformRegistry registry = BuiltinTransforms.createRegistry();
-        TransformExecutor transformExecutor = new TransformExecutor(registry, MAPPER);
-        JsonNodeExtractor extractor = new JsonNodeExtractor(pathResolver, jsonParser, transformExecutor);
 
-        // Test fallback extraction
-        FieldConfig config = FieldConfig.builder("visitorId")
-                .type("string")
-                .source(List.of("visitorId", "visitor_id", "legacy_visitor_id", "customer.user_id"))
-                .build();
+        // Demonstrate fallback extraction using PathResolver
+        List<String> paths = List.of("visitorId", "visitor_id", "legacy_visitor_id", "customer.user_id");
 
         System.out.println("\n" + CYAN + "▸ Extraction process:" + RESET);
         System.out.println("  Trying paths in order:");
-        System.out.println("    1. visitorId          → " + RED + "not found" + RESET);
-        System.out.println("    2. visitor_id         → " + RED + "not found" + RESET);
-        System.out.println("    3. legacy_visitor_id  → " + GREEN + "FOUND!" + RESET);
 
-        Optional<JsonNode> result = extractor.extract(root, config);
-        System.out.println("\n  Result: " + GREEN + result.orElse(null) + RESET);
+        JsonNode result = null;
+        for (String path : paths) {
+            JsonNode node = pathResolver.resolve(root, path);
+            if (node != null && !node.isNull() && !node.isMissingNode()) {
+                System.out.println("    " + path + " → " + GREEN + "FOUND!" + RESET);
+                result = node;
+                break;
+            } else {
+                System.out.println("    " + path + " → " + RED + "not found" + RESET);
+            }
+        }
+
+        System.out.println("\n  Result: " + GREEN + result + RESET);
 
         // Test nested path extraction
         System.out.println("\n" + CYAN + "▸ Nested path extraction:" + RESET);
         System.out.println("  Path: customer.user_id");
 
-        FieldConfig nestedConfig = FieldConfig.builder("userId")
-                .type("string")
-                .source(List.of("customer.user_id"))
-                .build();
-
-        Optional<JsonNode> nestedResult = extractor.extract(root, nestedConfig);
-        System.out.println("  Result: " + GREEN + nestedResult.orElse(null) + RESET);
+        JsonNode nestedResult = pathResolver.resolve(root, "customer.user_id");
+        System.out.println("  Result: " + GREEN + nestedResult + RESET);
 
         printSuccess();
     }

@@ -50,3 +50,6 @@ surefire-reports/
 
 # Dependency cache
 dependency-reduced-pom.xml
+
+# Local documentation (never commit)
+LOCAL_*.md

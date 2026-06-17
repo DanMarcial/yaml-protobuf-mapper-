@@ -17,10 +17,7 @@ import static io.github.yamlmapper.exception.ErrorMessages.ERR_JSON_NULL;
 
 import io.github.yamlmapper.exception.ConfigurationException;
 import io.github.yamlmapper.exception.MappingException;
-import io.github.yamlmapper.extractor.EmbeddedJsonParser;
-import io.github.yamlmapper.extractor.JsonNodeExtractor;
 import io.github.yamlmapper.extractor.PathResolver;
-import io.github.yamlmapper.extractor.TransformExecutor;
 import io.github.yamlmapper.loader.YamlConfigLoader;
 import io.github.yamlmapper.resolver.TypeResolver;
 import io.github.yamlmapper.transform.Transform;
@@ -79,17 +76,11 @@ public class MappingEngine {
 
   private final TypeResolver typeResolver;
   private final BuilderFactory builderFactory;
-  private final SetterResolver setterResolver;
-  private final TypeConverter typeConverter;
-  private final JsonNodeExtractor extractor;
   private final TransformRegistry transformRegistry;
   private final GenericProtobufBuilder protobufBuilder;
   private final ObjectMapper objectMapper;
   private final Map<String, MappingSchema> configCache;
   private final boolean injectEventType;
-  private final PathResolver pathResolver;
-  private final EmbeddedJsonParser jsonParser;
-  private final TransformExecutor transformExecutor;
   private final SchemaValidator schemaValidator;
   private final ValidatorRegistry validatorRegistry;
   private final boolean enablePostMappingValidation;
@@ -98,22 +89,8 @@ public class MappingEngine {
   private MappingEngine(Builder builder) {
     this.objectMapper = builder.objectMapper;
     this.typeResolver = new TypeResolver(builder.packagePrefixes);
-
-    this.pathResolver = new PathResolver();
-    this.jsonParser = new EmbeddedJsonParser(objectMapper);
-    this.transformExecutor = new TransformExecutor(builder.transformRegistry, objectMapper);
-
-    this.builderFactory = new BuilderFactory();
-    this.setterResolver = new SetterResolver();
-    this.typeConverter = new TypeConverter();
-
-    this.extractor = new JsonNodeExtractor(
-            pathResolver,
-            jsonParser,
-            transformExecutor
-    );
-
     this.transformRegistry = builder.transformRegistry;
+    this.builderFactory = new BuilderFactory();
     this.configCache = Map.copyOf(builder.configCache);
     this.injectEventType = builder.injectEventType;
     this.schemaValidator = new SchemaValidator(typeResolver, transformRegistry);
@@ -128,10 +105,13 @@ public class MappingEngine {
       this.validatorRegistry = new ValidatorRegistry();
     }
 
+    // All extraction logic is now inside GenericProtobufBuilder
     this.protobufBuilder = new GenericProtobufBuilder(
-            extractor,
-            typeConverter,
-            setterResolver,
+            new PathResolver(),
+            transformRegistry,
+            objectMapper,
+            new TypeConverter(),
+            new SetterResolver(),
             typeResolver,
             builderFactory
     );
