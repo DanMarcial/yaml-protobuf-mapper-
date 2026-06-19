@@ -244,7 +244,7 @@ public class GenericProtobufBuilder {
     // Field Building by Type
     // =========================================================================
 
-    public Object buildField(final JsonNode jsonNode, final FieldConfig config) {
+    Object buildField(final JsonNode jsonNode, final FieldConfig config) {
         if (config.hasMergeDefinitions()) {
             return buildMergedField(jsonNode, config);
         }
