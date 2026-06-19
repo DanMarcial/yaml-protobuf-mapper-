@@ -43,32 +43,6 @@ public class FieldExtractionException extends MappingException {
   }
 
   /**
-   * Creates a new FieldExtractionException with a custom message.
-   *
-   * @param fieldName the name of the field that could not be extracted
-   * @param triedSources the source paths that were attempted
-   * @param message custom error message
-   */
-  public FieldExtractionException(String fieldName, List<String> triedSources, String message) {
-    super(message);
-    this.fieldName = fieldName;
-    this.triedSources = triedSources != null ? List.copyOf(triedSources) : List.of();
-  }
-
-  /**
-   * Creates a new FieldExtractionException with a cause.
-   *
-   * @param fieldName the name of the field that could not be extracted
-   * @param message custom error message
-   * @param cause the underlying cause
-   */
-  public FieldExtractionException(String fieldName, String message, Throwable cause) {
-    super(message, cause);
-    this.fieldName = fieldName;
-    this.triedSources = List.of();
-  }
-
-  /**
    * Gets the name of the field that could not be extracted.
    *
    * @return the field name

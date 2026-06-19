@@ -143,17 +143,6 @@ public class GenericProtobufBuilder {
         }
     }
 
-    private void populateFieldsSafe(
-            final Message.Builder builder,
-            final JsonNode jsonNode,
-            final Map<String, FieldConfig> fields) {
-
-        if (fields == null || fields.isEmpty()) {
-            return;
-        }
-        populateFields(builder, jsonNode, fields);
-    }
-
     private void checkOneofConflict(
             final Message.Builder builder,
             final String fieldName,
@@ -399,7 +388,7 @@ public class GenericProtobufBuilder {
             }
 
             final Message.Builder itemBuilder = builderFactory.createBuilderFrom(messageClass);
-            populateFieldsSafe(itemBuilder, elementNode, itemFields);
+            populateFields(itemBuilder, elementNode, itemFields);
             result.add(itemBuilder.build());
         }
 
@@ -422,7 +411,7 @@ public class GenericProtobufBuilder {
         final Class<? extends Message> messageClass = typeResolver.resolveMessage(objectType);
         final Message.Builder nestedBuilder = builderFactory.createBuilderFrom(messageClass);
 
-        populateFieldsSafe(nestedBuilder, objectNode, config.fields());
+        populateFields(nestedBuilder, objectNode, config.fields());
 
         return nestedBuilder.build();
     }

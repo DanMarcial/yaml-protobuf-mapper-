@@ -18,30 +18,6 @@ public final class ErrorMessages {
     /** Error when config ID is null or blank. */
     public static final String ERR_CONFIG_ID_NULL = "Config ID cannot be null or blank";
 
-    /** Error when message class is null. */
-    public static final String ERR_MESSAGE_CLASS_NULL = "Message class cannot be null";
-
-    /** Error when builder is null. */
-    public static final String ERR_BUILDER_NULL = "Builder cannot be null";
-
-    /** Error when field name is null or blank. */
-    public static final String ERR_FIELD_NAME_NULL = "Field name cannot be null or blank";
-
-    /** Error when fields configuration is null or empty. */
-    public static final String ERR_FIELDS_CONFIG_NULL = "Fields configuration cannot be null or empty";
-
-    /** Error when transform is null. */
-    public static final String ERR_TRANSFORM_NULL = "Transform cannot be null";
-
-    /** Error when message type is null or blank. */
-    public static final String ERR_MESSAGE_TYPE_NULL = "Message type cannot be null or blank";
-
-    /** Error when validator is null. */
-    public static final String ERR_VALIDATOR_NULL = "Validator cannot be null";
-
-    /** Error when message is null for validation. */
-    public static final String ERR_MESSAGE_NULL = "Message cannot be null";
-
     // ============================================
     // Configuration errors
     // ============================================
@@ -49,21 +25,12 @@ public final class ErrorMessages {
     /** Error template when configuration is not found. */
     public static final String ERR_CONFIG_NOT_FOUND = "No configuration found for configId '%s'";
 
-    /** Error template when configuration has no fields. */
-    public static final String ERR_CONFIG_NO_FIELDS = "Configuration '%s' has no fields defined";
-
-    /** Error template for config-specific errors. */
-    public static final String ERR_CONFIG_FORMAT = "Config '%s': %s";
-
     // ============================================
     // Field processing errors
     // ============================================
 
     /** Error template for field processing error. */
     public static final String ERR_FIELD_PROCESSING = "Error processing field '%s': %s";
-
-    /** Error template for field with null configuration. */
-    public static final String ERR_FIELD_NULL_CONFIG = "Field '%s' has null configuration";
 
     // ============================================
     // Type/Builder errors
