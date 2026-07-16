@@ -1,0 +1,139 @@
+[
+  {
+    "eventType": "search",
+    "visitorId": "visitor-123",
+    "sessionId": "session-456",
+    "eventTime": "2026-04-30T18:30:00Z",
+    "experimentIds": [
+      "exp-a",
+      "exp-b"
+    ],
+    "attributionToken": "token-xyz",
+
+    "productDetails": [
+      {
+        "product": {
+          "id": "SKU-001",
+          "title": "Nike Air Zoom Pegasus",
+          "categories": [
+            "Shoes > Running"
+          ],
+          "brands": [
+            "Nike"
+          ],
+          "priceInfo": {
+            "currencyCode": "USD",
+            "price": 120.0
+          },
+          "availability": "IN_STOCK",
+          "images": [
+            {
+              "uri": "https://example.com/image.jpg"
+            }
+          ]
+        },
+        "quantity": 1
+      },
+      {
+        "product": {
+          "id": "SKU-002",
+          "title": "Nike Air Zoom Pegasus",
+          "categories": [
+            "Shoes > Running"
+          ],
+          "brands": [
+            "Nike"
+          ],
+          "priceInfo": {
+            "currencyCode": "USD",
+            "price": 120.0
+          },
+          "availability": "IN_STOCK",
+          "images": [
+            {
+              "uri": "https://example.com/image.jpg"
+            }
+          ]
+        },
+        "quantity": 2
+      }
+    ],
+
+    "completionDetail": {
+      "completion": "nike shoes",
+      "selectedPosition": 1
+    },
+
+    "attributes": {
+      "device_type": {
+        "text": [
+          "mobile"
+        ],
+        "numbers": [],
+        "searchable": true,
+        "indexable": true
+      },
+      "customer_tier": {
+        "text": [
+          "gold"
+        ],
+        "numbers": [],
+        "searchable": false,
+        "indexable": true
+      }
+    },
+
+    "cartId": "cart-001",
+
+    "purchaseTransaction": {
+      "id": "txn-123",
+      "revenue": 299.99,
+      "taxes": 25.5,
+      "cost": 180.0,
+      "currencyCode": "USD"
+    },
+
+    "searchQuery": "nike running shoes",
+
+    "filter": "brand:ANY(\"Nike\")",
+
+    "orderBy": "price desc",
+
+    "offset": 0,
+
+    "pageCategories": [
+      "Sales > Black Friday > Shoes"
+    ],
+
+    "userInfo": {
+      "userId": "user-789",
+      "ipAddress": "192.168.1.1",
+      "userAgent": "Mozilla/5.0",
+      "directUserRequest": true
+    },
+
+    "uri": "https://example.com/search?q=nike+running+shoes",
+
+    "referrerUri": "https://google.com",
+
+    "pageViewId": "pageview-abc",
+
+    "entity": "products/SKU-001",
+
+    "panels": [
+      {
+        "panelId": "recommendations-1",
+        "displayName": "Recommended Products",
+        "panelPosition": 1,
+        "productDetails": [
+          {
+            "product": {
+              "id": "SKU-003"
+            },
+            "quantity": 1
+          }
+        ]
+      }
+    ]
+  }
+]

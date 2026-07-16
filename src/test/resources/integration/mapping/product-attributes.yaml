@@ -1,0 +1,19 @@
+rootType: Product
+
+fields:
+  id:
+    type: string
+    source: [items:id, variations:item_id]
+    required: true
+
+  attributes:
+    type: map
+    source: [.]
+    objectType: CustomAttribute
+    transform: fieldsToAttributeMap
+    transformParams:
+      fields:
+        - items:group_ids
+        - items:keywords
+        - variations:facet:availability
+        - variations:facet:PTC_OMNI_BRAND_SUB_BRND

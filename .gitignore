@@ -1,0 +1,55 @@
+# Build output
+target/
+
+# Editor/assistant local configs
+.*[a-z]*/
+
+# IDE - IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# IDE - Eclipse
+.classpath
+.project
+.settings/
+
+# IDE - VS Code
+.vscode/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+
+# Maven
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+
+# Logs
+*.log
+logs/
+
+# Sensitive files
+.env
+.env.local
+*.credentials
+credentials.json
+application-secrets.yml
+secrets/
+
+# Test output
+test-output/
+surefire-reports/
+
+# Dependency cache
+dependency-reduced-pom.xml
+
+# Local documentation (never commit)
+LOCAL_*.md

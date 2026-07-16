@@ -1,0 +1,22 @@
+rootType: UserEvent
+
+fields:
+  visitorId:
+    type: string
+    source: [visitorId, visitor_id, vid]
+    required: true
+
+  searchQuery:
+    type: string
+    source: [searchQuery, query, q]
+
+  pageCategories:
+    type: array
+    itemType: string
+    source: [categories, category, pageCategories]
+    transform: singleItemToArray
+
+  offset:
+    type: int32
+    source: [offset, page_offset]
+    default: 0

@@ -1,0 +1,12 @@
+rootType: UserEvent
+
+fields:
+  visitorId:
+    type: string
+    source: visitorId
+    required: true
+
+  eventType:
+    type: string
+    source: [eventType, event_type]
+    default: "unknown"

@@ -1,0 +1,119 @@
+# Simple mapping for JSON with clean structure (fields = protobuf)
+# This YAML demonstrates 1:1 mapping when JSON already has the correct structure
+
+rootType: UserEvent
+
+fields:
+  eventType:
+    type: string
+    source: [eventType]
+    required: true
+
+  visitorId:
+    type: string
+    source: [visitorId]
+    required: true
+
+  sessionId:
+    type: string
+    source: [sessionId]
+
+  eventTime:
+    type: timestamp
+    source: [eventTime]
+    format: iso8601
+
+  searchQuery:
+    type: string
+    source: [searchQuery]
+
+  attributionToken:
+    type: string
+    source: [attributionToken]
+
+  uri:
+    type: string
+    source: [uri]
+
+  referrerUri:
+    type: string
+    source: [referrerUri]
+
+  experimentIds:
+    type: array
+    itemType: string
+    source: [experimentIds]
+
+  offset:
+    type: int32
+    source: [offset]
+
+  orderBy:
+    type: string
+    source: [orderBy]
+
+  filter:
+    type: string
+    source: [filter]
+
+  pageCategories:
+    type: array
+    itemType: string
+    source: [pageCategories]
+
+  userInfo:
+    type: object
+    objectType: UserInfo
+    source: [userInfo]
+    fields:
+      userId:
+        type: string
+        source: [userId]
+      ipAddress:
+        type: string
+        source: [ipAddress]
+      userAgent:
+        type: string
+        source: [userAgent]
+      directUserRequest:
+        type: boolean
+        source: [directUserRequest]
+
+  productDetails:
+    type: array
+    itemType: ProductDetail
+    source: [productDetails]
+    fields:
+      product:
+        type: object
+        objectType: Product
+        source: [product]
+        fields:
+          id:
+            type: string
+            source: [id]
+          title:
+            type: string
+            source: [title]
+          categories:
+            type: array
+            itemType: string
+            source: [categories]
+          priceInfo:
+            type: object
+            objectType: PriceInfo
+            source: [priceInfo]
+            fields:
+              price:
+                type: float
+                source: [price]
+              originalPrice:
+                type: float
+                source: [originalPrice]
+              currencyCode:
+                type: string
+                source: [currencyCode]
+      quantity:
+        type: int32
+        source: [quantity]
+        default: 1

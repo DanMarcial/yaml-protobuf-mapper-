@@ -1,0 +1,66 @@
+rootType: UserEvent
+
+fields:
+  visitorId:
+    type: string
+    source: [visitorId, visitor_id]
+    required: true
+
+  sessionId:
+    type: string
+    source: [sessionId, session_id]
+
+  searchQuery:
+    type: string
+    source: [searchQuery, search_query, query]
+
+  pageCategories:
+    type: array
+    itemType: string
+    source: [pageCategories, category, categories]
+    transform: singleItemToArray
+
+  offset:
+    type: int32
+    source: [offset, page_offset]
+    default: 0
+
+  orderBy:
+    type: string
+    source: [orderBy, order_by]
+
+  uri:
+    type: string
+    source: [uri, path]
+
+  referrerUri:
+    type: string
+    source: [referrerUri, http_referer, referer, referrer]
+
+  attributionToken:
+    type: string
+    source: [attributionToken, attribution_token]
+
+  productDetails:
+    type: array
+    itemType: ProductDetail
+    source: [productsIds, productIds, products, productDetails]
+    fields:
+      product:
+        type: object
+        objectType: Product
+        source: [product]
+        fields:
+          id:
+            type: string
+            source: [id]
+      quantity:
+        type: int32
+        source: [quantity]
+        default: 1
+
+  experimentIds:
+    type: array
+    itemType: string
+    source: [experimentsIds, experimentIds]
+

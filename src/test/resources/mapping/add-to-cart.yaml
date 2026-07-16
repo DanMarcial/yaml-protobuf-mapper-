@@ -1,0 +1,40 @@
+rootType: UserEvent
+
+fields:
+  visitorId:
+    type: string
+    source: [visitorId, visitor_id]
+    required: true
+
+  sessionId:
+    type: string
+    source: [sessionId, session_id]
+
+  uri:
+    type: string
+    source: [uri, path]
+
+  cartId:
+    type: string
+    source: [cartId, cart_id]
+
+  # Note: Current test JSON has flat structure (item_id at root level).
+  # This config expects productDetails as array of objects in JSON.
+  # For flat JSON, a custom transform would be needed.
+  productDetails:
+    type: array
+    itemType: ProductDetail
+    source: [productDetails, products]
+    fields:
+      product:
+        type: object
+        objectType: Product
+        source: [product]
+        fields:
+          id:
+            type: string
+            source: [id, item_id]
+      quantity:
+        type: int32
+        source: [quantity]
+        default: 1

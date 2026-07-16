@@ -1,0 +1,203 @@
+# Complex mapping for Product with legacy/chaotic structure
+# Demonstrates ALL transforms and merge definitions:
+# - splitToArray: breadcrumb and pipe-delimited strings
+# - singleItemToArray: wrap single values
+# - mapValue: map strings to enums
+# - stringsToImages: URLs to Image objects
+# - replaceChars: locale format conversion
+# - parseKeyValuePairs: facets string parsing
+# - fieldsToAttributeMap: metadata fields to attributes
+# - MERGE DEFINITIONS: combine multiple sources into single field
+
+rootType: Product
+
+fields:
+  id:
+    type: string
+    source: [sku, product_id, id]
+    required: true
+
+  title:
+    type: string
+    source: [product_name, name, title]
+
+  description:
+    type: string
+    source: [long_description, description, short_description]
+
+  # Transform: breadcrumb string to array (slash delimiter)
+  # Also supports pipe delimiter as fallback
+  categories:
+    type: array
+    itemType: string
+    source: [pipe_categories, category_breadcrumb, categories]
+    transform: splitToArray
+    transformParams:
+      delimiter: "|"
+
+  # Transform: single field to array
+  brands:
+    type: array
+    itemType: string
+    source: [brand_name, manufacturer, brands]
+    transform: singleItemToArray
+
+  priceInfo:
+    type: object
+    objectType: PriceInfo
+    source: [pricing, priceInfo]
+    fields:
+      price:
+        type: float
+        source: [current_price, sale_price, price]
+      originalPrice:
+        type: float
+        source: [list_price, msrp, originalPrice]
+      currencyCode:
+        type: string
+        source: [currency, currencyCode]
+        default: "USD"
+      cost:
+        type: float
+        source: [wholesale_cost, cost]
+
+  # Transform: string value mapping to enum
+  availability:
+    type: enum
+    enumType: Product.Availability
+    source: [stock_status, availability]
+    transform: mapValue
+    transformParams:
+      mapping:
+        available: "IN_STOCK"
+        in_stock: "IN_STOCK"
+        out_of_stock: "OUT_OF_STOCK"
+        sold_out: "OUT_OF_STOCK"
+        preorder: "PREORDER"
+        backorder: "BACKORDER"
+      default: "IN_STOCK"
+
+  availableQuantity:
+    type: int32
+    source: [inventory_count, stock_quantity, availableQuantity]
+    default: 0
+
+  uri:
+    type: string
+    source: [product_url, page_url, uri]
+
+  # Transform: string array to Image object array
+  images:
+    type: array
+    itemType: Image
+    source: [image_gallery, images]
+    transform: stringsToImages
+    fields:
+      uri:
+        type: string
+        source: [uri]
+
+  sizes:
+    type: array
+    itemType: string
+    source: [available_sizes, sizes]
+
+  colorInfo:
+    type: object
+    objectType: ColorInfo
+    source: [colorInfo, "."]
+    fields:
+      # Transform: string to array
+      colorFamilies:
+        type: array
+        itemType: string
+        source: [color_family, colorFamilies]
+        transform: singleItemToArray
+      colors:
+        type: array
+        itemType: string
+        source: [color, colors]
+        transform: singleItemToArray
+
+  # Transform: CSV string to array
+  materials:
+    type: array
+    itemType: string
+    source: [product_materials, materials]
+    transform: splitToArray
+    transformParams:
+      delimiter: ", "
+
+  # Transform: keywords string to tags array
+  tags:
+    type: array
+    itemType: string
+    source: [keywords, tags]
+    transform: splitToArray
+    transformParams:
+      delimiter: ", "
+
+  rating:
+    type: object
+    objectType: Rating
+    source: [customer_reviews, rating]
+    fields:
+      ratingCount:
+        type: int32
+        source: [total_reviews, ratingCount]
+      averageRating:
+        type: float
+        source: [avg_rating, averageRating]
+
+  # Transform: locale format (en_US) to languageCode (en-US)
+  languageCode:
+    type: string
+    source: [locale, languageCode]
+    transform: replaceChars
+    transformParams:
+      from: "_"
+      to: "-"
+
+  # Transform: simple date to full timestamp
+  expireTime:
+    type: timestamp
+    source: [valid_until, expireTime]
+    format: iso8601
+
+  # ============================================================
+  # MERGED ATTRIBUTES: combines multiple sources into single map
+  # Uses array syntax for merge definitions
+  # ============================================================
+  attributes:
+    # First source: Parse facets string "Key:Value|Key:Value"
+    - type: map
+      source: [facets]
+      objectType: CustomAttribute
+      transform: parseKeyValuePairs
+      transformParams:
+        pairDelimiter: "|"
+        keyValueDelimiter: ":"
+
+    # Second source: metadata:* fields with literal colon names
+    - type: map
+      source: ["."]
+      objectType: CustomAttribute
+      transform: fieldsToAttributeMap
+      transformParams:
+        fields:
+          - "metadata:PTC_OMNI_BRAND_PRIMARY"
+          - "metadata:PTC_OMNI_CATEGORY"
+          - "metadata:PTC_OMNI_SUBCATEGORY"
+          - "metadata:list_price"
+          - "metadata:sale_price"
+
+    # Third source: facet:* fields
+    - type: map
+      source: ["."]
+      objectType: CustomAttribute
+      transform: fieldsToAttributeMap
+      transformParams:
+        fields:
+          - "facet:display_type"
+          - "facet:resolution"
+          - "facet:refresh_rate"

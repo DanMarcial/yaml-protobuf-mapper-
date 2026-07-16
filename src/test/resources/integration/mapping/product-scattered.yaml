@@ -1,0 +1,44 @@
+# Mapping for JSON with scattered fields across different nodes
+# Demonstrates using source: ["."] to access fields from root context
+
+rootType: Product
+
+fields:
+  id:
+    type: string
+    source: [id]
+    required: true
+
+  title:
+    type: string
+    source: [title]
+
+  # PriceInfo fields are scattered across: price, past, currency nodes
+  priceInfo:
+    type: object
+    source: ["."]  # Keep full root context to access scattered fields
+    objectType: PriceInfo
+    fields:
+      price:
+        type: float
+        source: [price.current]  # From price.current
+      originalPrice:
+        type: float
+        source: [past.price]     # From past.price
+      currencyCode:
+        type: string
+        source: [currency.code]  # From currency.code
+
+  # Brands from nested brand node
+  brands:
+    type: array
+    itemType: string
+    source: ["."]
+    transform: singleItemToArray
+    # This won't work directly - we need a different approach
+    # For now, let's use a simpler example
+
+  availability:
+    type: enum
+    enumType: Product.Availability
+    source: [stock.status]

@@ -1,0 +1,48 @@
+{
+  "eventType": "search",
+  "visitorId": "visitor-abc-123",
+  "sessionId": "session-xyz-789",
+  "eventTime": "2024-03-15T14:30:00Z",
+  "searchQuery": "laptop gaming rtx 4080",
+  "attributionToken": "attr-token-12345",
+  "uri": "https://store.example.com/search?q=laptop+gaming",
+  "referrerUri": "https://store.example.com/",
+  "experimentIds": ["exp-001", "exp-002"],
+  "offset": 0,
+  "orderBy": "relevance",
+  "filter": "price < 2000",
+  "pageCategories": ["Electronics", "Computers", "Laptops"],
+  "userInfo": {
+    "userId": "user-12345",
+    "ipAddress": "192.168.1.100",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/122.0.0.0",
+    "directUserRequest": true
+  },
+  "productDetails": [
+    {
+      "product": {
+        "id": "SKU-LAPTOP-001",
+        "title": "Gaming Laptop RTX 4080",
+        "categories": ["Electronics", "Computers"],
+        "priceInfo": {
+          "price": 1899.99,
+          "originalPrice": 2199.99,
+          "currencyCode": "USD"
+        }
+      },
+      "quantity": 1
+    },
+    {
+      "product": {
+        "id": "SKU-LAPTOP-002",
+        "title": "Gaming Laptop RTX 4070",
+        "categories": ["Electronics", "Computers"],
+        "priceInfo": {
+          "price": 1499.99,
+          "currencyCode": "USD"
+        }
+      },
+      "quantity": 1
+    }
+  ]
+}
