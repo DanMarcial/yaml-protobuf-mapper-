@@ -1,0 +1,34 @@
+# Minimal mapping for benchmark - only the fields being tested
+# No transforms, no fallbacks - pure 1:1 mapping
+
+rootType: UserEvent
+
+fields:
+  eventType:
+    type: string
+    source: eventType
+
+  visitorId:
+    type: string
+    source: visitorId
+
+  searchQuery:
+    type: string
+    source: searchQuery
+
+  pageCategories:
+    type: array
+    itemType: string
+    source: pageCategories
+
+  userInfo:
+    type: object
+    objectType: UserInfo
+    source: userInfo
+    fields:
+      userId:
+        type: string
+        source: userId
+      ipAddress:
+        type: string
+        source: ipAddress

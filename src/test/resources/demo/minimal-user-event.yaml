@@ -1,0 +1,13 @@
+# Minimal mapping - only required fields
+rootType: UserEvent
+
+fields:
+  eventType:
+    type: string
+    source: [eventType]
+    required: true
+
+  visitorId:
+    type: string
+    source: [visitorId]
+    required: true

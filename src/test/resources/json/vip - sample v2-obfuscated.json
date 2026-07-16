@@ -1,0 +1,16 @@
+[
+  {
+    "visitorId": "CF55A**************************7E039",
+    "sessionId": "59d43**************************d7f02",
+    "eventTime": "2025-10-06T00:59:59.998-0300",
+    "experimentsIds": "[{\"key\":\"buyingflow/pse-legacy-fs\",\"value\":\"133354\"}]",
+    "uri": "/vip",
+    "userId": "9********0",
+    "userAgent": "MercadoL************************************************18.6.2%29",
+    "item_id": "MLC1459553657",
+    "price": 2990,
+    "currency_id": "CLP",
+    "http_referer": "",
+    "httpUrl": ""
+  }
+]

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Console appender for test output -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Silence yaml-protobuf-mapper during benchmarks -->
+    <logger name="io.github.yamlmapper" level="WARN"/>
+
+    <!-- Silence protobuf -->
+    <logger name="com.google.protobuf" level="WARN"/>
+
+    <!-- Default level for tests -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>
